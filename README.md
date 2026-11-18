@@ -19,6 +19,7 @@ src/mocapref/
                              each has check_for_<error>(recording), remove_<error>(...) and
                              handle_<error>(datasets) -> ErrorReport
     _report.py               ErrorReport: prevalence per dataset, per-trial rows, notes, corrected data
+  download.py                download(): every dataset from its original depositor, checked, in the loaders' layout
   correction.py              correct_in_order(): all errors corrected in the agreed order
   effect_analysis.py         EffectAnalysis: influence of the corrections on MEKF and/or zoe
   effect.py, zoe.py          the two estimators, tuning and scoring
@@ -39,10 +40,43 @@ uv sync
 uv run pytest -q          # about 5 minutes
 ```
 
-The raw data are not part of the repository. The loaders read them from `/home/data/imu-orientation/raw/<dataset>/`
-(`mocapref.datasets.base.DATA_ROOT`); every loader also accepts `root=...`. The ABB robot arm (`dfjimu`) and the printed four-segment chain (`mfimt_d01`)
-are read from the folders named by the environment variables `MOCAPREF_DFJIMU` and `MOCAPREF_MFIMT` (default
-`<DATA_ROOT>/dfjimu` and `<DATA_ROOT>/mfimt`); their loader tests are skipped when the data are not found.
+### Get the data
+
+The data are not part of the repository. `mocapref.download` fetches every dataset from the host where its
+depositors published it and unpacks it into the layout the loaders read:
+
+```bash
+uv run python -m mocapref.download                       # all 18 datasets
+uv run python -m mocapref.download is2b dfjimu reemc     # a subset
+```
+
+```python
+from mocapref.download import download, DATASETS
+download(['is2b', 'grouvel'])        # {'is2b': 'done', 'grouvel': 'done'}
+DATASETS['is2b']                     # host, DOI, licence and the files taken
+```
+
+- **Where**: `<MOCAPREF_DATA>/<dataset>/`; if that variable is not set, `data/` in this repository. Files
+  derived from the deposits (the OpenSense reference rebuilt from the markers, the Geneva IMU streams rebuilt from
+  the raw logs) go to `MOCAPREF_PREPARED`, default `<MOCAPREF_DATA>/_prepared`. Set both before importing
+  `mocapref`.
+- **What**: only the files the loaders read, and the participants our results are based on: Delaware compliant
+  terrain SUB01-SUB02 (`--all-participants` adds SUB03-SUB20, 54 GB, not used in the paper) and Camargo part 1
+  (AB06-AB14). About 61 GB to download.
+- **Checks**: every file is checked against the checksum its host publishes, or against the checksum of the copy
+  our results were computed on; the two GitHub sources are pinned to a commit. Interrupted downloads resume; a
+  finished dataset is skipped on the next call.
+- **By hand**: OpenSense is on SimTK, which allows downloads only after a (free) login: put `study20-latest.tar.gz`
+  from https://simtk.org/plugins/datashare/?group_id=2164 into `<MOCAPREF_DATA>/opensense/` and run the download
+  again, which checks and unpacks it. The printed four-segment chain (`mfimt_d01`) is not publicly deposited; its
+  file `chain_experiment_d01.npz` goes into `<MOCAPREF_DATA>/mfimt/`.
+- **After Geneva**: the download rebuilds Geneva's IMU streams from its raw session logs (about a minute), which the
+  correction of the mis-assembled streams (error 10) reads.
+- **Tools**: Hip-ROM-Y is a RAR5 archive; unpacking it needs `bsdtar` (libarchive), `7zz`, `unrar` or `unar`.
+
+Every loader also accepts `root=...` for data elsewhere; the robot arm (`dfjimu`) and the printed chain
+(`mfimt_d01`) can also be pointed elsewhere with `MOCAPREF_DFJIMU` and `MOCAPREF_MFIMT`. Loader tests are skipped
+when a dataset is not found.
 
 ## The datasets
 

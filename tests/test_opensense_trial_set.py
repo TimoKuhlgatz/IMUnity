@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from mocapref.datasets.base import DATA_ROOT
 from mocapref.datasets.readers.characterisation.adapters.opensense import ADAPTER, EXCLUDED_TRIALS
 from mocapref.datasets.readers.datasets.opensense import sensors
 
@@ -38,7 +39,7 @@ def test_trial_set():
     assert ADAPTER.joints_of('Subject07', 'complexTasks') == ADAPTER.joints_of('Subject07', 'walking')
 
 
-DEPOSIT = Path('/home/data/imu-orientation/raw/opensense/_extracted/Subject07')
+DEPOSIT = DATA_ROOT / 'opensense' / '_extracted' / 'Subject07'
 
 
 @pytest.mark.skipif(not DEPOSIT.is_dir(), reason='OpenSense deposit not on this machine')

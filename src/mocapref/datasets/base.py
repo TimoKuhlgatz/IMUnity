@@ -6,8 +6,7 @@ from pathlib import Path
 from typing import Iterator
 
 from ..recording import Recording
-
-DATA_ROOT = Path('/home/data/imu-orientation/raw')
+from .readers.characterisation.paths import PREPARED, RAW as DATA_ROOT  # noqa: F401  (MOCAPREF_DATA, MOCAPREF_PREPARED)
 
 
 class DatasetLoader(ABC):

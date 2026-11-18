@@ -2,7 +2,7 @@
 """Rebuild the Geneva (grouvel) sensor streams on the optical clock from the raw 256 Hz session files.
 
 Run once; the output folder is what the `grouvel_raw` loader reads (its default is
-/home/data/imu-orientation/prepared/grouvel/raw-rebuild-v1):
+<MOCAPREF_PREPARED>/grouvel/raw-rebuild-v1):
 
     uv run python -m mocapref.datasets.readers.scripts.rebuild_geneva_from_raw --out <folder> [--subjects P01 ...]
         [--workers 10]

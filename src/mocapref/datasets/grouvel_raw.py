@@ -12,7 +12,8 @@ logger keeps one constant offset to the others), refined per sensor to 1 ms; the
 phase, 40 Hz) and read at the trial's 100 Hz rows, on the vendor's factory calibration from the file header. Only
 time is fitted.
 
-The rebuild is run once (73 s on 10 processes) and stored outside the repository:
+The rebuild is run once (73 s on 10 processes; `mocapref.download` runs it after downloading Geneva) into
+<MOCAPREF_PREPARED>/grouvel/raw-rebuild-v1:
     uv run python -m mocapref.datasets.readers.scripts.rebuild_geneva_from_raw --out <REBUILD_DIR>
 
 This loader serves the trials, segments and references of `grouvel` unchanged and replaces each IMU's gyroscope and
@@ -29,8 +30,9 @@ import pandas as pd
 
 from ..recording import ImuStream, Recording
 from ._bridge import READER_LOADERS
+from .base import PREPARED
 
-REBUILD_DIR = pathlib.Path('/home/data/imu-orientation/prepared/grouvel/raw-rebuild-v1')
+REBUILD_DIR = PREPARED / 'grouvel' / 'raw-rebuild-v1'
 _GROUVEL = next(loader for loader in READER_LOADERS if loader.name == 'grouvel')
 
 

@@ -5,8 +5,11 @@ import os
 from pathlib import Path
 
 HOME = Path.home()
-RAW = Path("/home/data/imu-orientation/raw")
-PREPARED = Path("/home/data/imu-orientation/prepared")
+REPO = Path(__file__).resolve().parents[5]
+# The downloaded deposits (mocapref.download writes them here): MOCAPREF_DATA, else data/ in the repository.
+RAW = Path(os.environ.get("MOCAPREF_DATA", REPO / "data")).expanduser()
+# Files derived from the deposits (rebuilt OpenSense reference, Geneva streams rebuilt from the raw logs).
+PREPARED = Path(os.environ.get("MOCAPREF_PREPARED", RAW / "_prepared")).expanduser()
 # The data homes the readers use; the environment variables override them.
 ENV = {
     "eval_datasets": ("MOCAPREF_DATA", RAW),
