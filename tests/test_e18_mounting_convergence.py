@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from mocapref import errors as E
-from mocapref.synthetic import make_recording
+from imunity import errors as E
+from imunity.synthetic import make_recording
 
 MOUNTING = Rotation.from_euler('xyz', [20, -10, 90], degrees=True)
 

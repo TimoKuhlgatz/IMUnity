@@ -5,9 +5,9 @@ the trial is reported, not counted."""
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from mocapref.errors.e01_label_swaps import _kabsch
-from mocapref.errors.e02_misplaced_markers import check_for_misplaced_markers, find_misplaced, remove_misplaced_markers
-from mocapref.synthetic import make_recording
+from imunity.errors.e01_label_swaps import _kabsch
+from imunity.errors.e02_misplaced_markers import check_for_misplaced_markers, find_misplaced, remove_misplaced_markers
+from imunity.synthetic import make_recording
 
 LOCAL = np.array([[60.0, 0, 0], [0, 70.0, 0], [0, 0, 80.0], [-50.0, -50.0, 0]])
 
@@ -74,7 +74,7 @@ def test_one_millimetre_floor():
 
 def test_handler_counts_runs_and_leaves_the_frames_as_deposited():
     from memory_loader import MemoryLoader
-    from mocapref.errors import e02_misplaced_markers as H
+    from imunity.errors import e02_misplaced_markers as H
 
     data = {}
     for i in range(3):

@@ -5,11 +5,11 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from mocapref.effect import scoring_skip_s
-from mocapref.motion_onset import long_enough, motion_onset_s, scoring_start_s
-from mocapref.resample import resample_to_common_grid
-from mocapref.effect import trial_start_s
-from mocapref.synthetic import make_recording
+from imunity.effect import scoring_skip_s
+from imunity.motion_onset import long_enough, motion_onset_s, scoring_start_s
+from imunity.resample import resample_to_common_grid
+from imunity.effect import trial_start_s
+from imunity.synthetic import make_recording
 
 
 def still_until(rec, t_s, jitter_deg=0.0, seed=0):

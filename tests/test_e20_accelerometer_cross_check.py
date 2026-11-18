@@ -5,8 +5,8 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from mocapref.errors.accelerometer_cross_check import pooled_slope, trial_terms
-from mocapref.synthetic import make_recording
+from imunity.errors.accelerometer_cross_check import pooled_slope, trial_terms
+from imunity.synthetic import make_recording
 
 MOUNTING = Rotation.from_euler('xyz', [30, -50, 120], degrees=True)  # segment frame -> sensor frame
 UP = np.array([0.0, 0.0, 1.0])

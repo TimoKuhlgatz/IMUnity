@@ -9,7 +9,7 @@ import zipfile
 
 import pytest
 
-from mocapref import download as dl
+from imunity import download as dl
 
 
 def _serve(tmp_path, payload: bytes):
@@ -82,5 +82,5 @@ def test_download_marks_complete_and_reports_manual_steps(tmp_path, monkeypatch)
 
 
 def test_every_paper_dataset_has_a_source():
-    from mocapref.datasets import PAPER_DATASETS
+    from imunity.datasets import PAPER_DATASETS
     assert set(dl.DATASETS) == set(PAPER_DATASETS)

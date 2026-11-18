@@ -4,8 +4,8 @@ is tested in test_errors_known_answer.py."""
 import pytest
 
 from memory_loader import MemoryLoader
-from mocapref.errors import e12_time_offset as M
-from mocapref.synthetic import make_recording
+from imunity.errors import e12_time_offset as M
+from imunity.synthetic import make_recording
 
 
 def test_handler_counts_and_removes_an_offset():

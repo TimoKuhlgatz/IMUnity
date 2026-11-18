@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from mocapref.datasets._bridge import WORLD_TO_Z_UP, _reference_stream
+from imunity.datasets._bridge import WORLD_TO_Z_UP, _reference_stream
 
 
 def _pose(rotations, markers):
@@ -37,7 +37,7 @@ def test_only_the_two_y_up_datasets_are_turned():
 
 
 def test_empty_samples_at_the_end_are_counted():
-    from mocapref.datasets._bridge import _empty_tail
+    from imunity.datasets._bridge import _empty_tail
     gyr, acc = np.ones((10, 3)), np.ones((10, 3))
     assert _empty_tail(gyr, acc) == 0
     gyr[-1], acc[-1] = np.nan, np.nan

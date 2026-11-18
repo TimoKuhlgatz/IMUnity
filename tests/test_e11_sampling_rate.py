@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 from scipy.signal import resample
 
-from mocapref.errors.e11_sampling_rate import check_for_effective_rate, check_for_time_scale, remove_time_scale
-from mocapref.synthetic import make_recording
+from imunity.errors.e11_sampling_rate import check_for_effective_rate, check_for_time_scale, remove_time_scale
+from imunity.synthetic import make_recording
 
 
 def declared(true_hz, declared_hz, duration_s=60.0):
@@ -145,7 +145,7 @@ def test_rank_block_rule_ignores_a_corrupted_sample():
 def test_handler_counts_and_corrects_a_stretched_trial():
     """Dataset level: one stretched and one clean trial; the stretched one counts with both IMUs and is rescaled."""
     from memory_loader import MemoryLoader
-    from mocapref.errors import e11_sampling_rate as M
+    from imunity.errors import e11_sampling_rate as M
     loader = MemoryLoader({'clean': declared(100.0, 100.0, 40.0), 'stretched': declared(240.0, 100.0, 40.0)})
     rows = M.check_dataset(loader, 'synthetic', 1)
     p = M.prevalence(rows)

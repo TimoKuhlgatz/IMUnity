@@ -6,10 +6,10 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from mocapref import errors as E
-from mocapref.errors.e17_gyroscope_offset import rest_mask
-from mocapref.recording import ImuStream, Recording, ReferenceStream, Segment
-from mocapref.synthetic import GRAVITY, _integrate, smooth_rate
+from imunity import errors as E
+from imunity.errors.e17_gyroscope_offset import rest_mask
+from imunity.recording import ImuStream, Recording, ReferenceStream, Segment
+from imunity.synthetic import GRAVITY, _integrate, smooth_rate
 
 RATE = 100.0
 FINE = 2000.0
@@ -119,7 +119,7 @@ def test_reference_jitter_does_not_hide_rest():
 def test_handler_counts_offsets_and_subtracts_them():
     """Dataset level: two trials of one session, each with rest and an offset; both counted, both removed."""
     from memory_loader import MemoryLoader
-    from mocapref.errors import e17_gyroscope_offset as M
+    from imunity.errors import e17_gyroscope_offset as M
     recs = {'a': recording('a', rests=[(5, 8)], offset_dps=(1.0, -0.5, 0.3), seed=1),
             'b': recording('b', rests=[(20, 23)], offset_dps=(1.0, -0.5, 0.3), seed=2)}
     loader = MemoryLoader(recs, session={'a': 's1', 'b': 's1'})

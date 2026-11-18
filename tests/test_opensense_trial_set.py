@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from mocapref.datasets.base import DATA_ROOT
-from mocapref.datasets.readers.characterisation.adapters.opensense import ADAPTER, EXCLUDED_TRIALS
-from mocapref.datasets.readers.datasets.opensense import sensors
+from imunity.datasets.base import DATA_ROOT
+from imunity.datasets.readers.characterisation.adapters.opensense import ADAPTER, EXCLUDED_TRIALS
+from imunity.datasets.readers.datasets.opensense import sensors
 
 MAPPING = """<?xml version="1.0" encoding="UTF-8" ?>
 <OpenSimDocument Version="40000"><XsensDataReaderSettings>

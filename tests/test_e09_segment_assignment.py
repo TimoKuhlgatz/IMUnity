@@ -5,9 +5,9 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from mocapref.errors.e09_segment_assignment import check_for_segment_assignment, remove_segment_assignment
-from mocapref.recording import ImuStream, Recording, ReferenceStream, Segment
-from mocapref.synthetic import _integrate, make_recording
+from imunity.errors.e09_segment_assignment import check_for_segment_assignment, remove_segment_assignment
+from imunity.recording import ImuStream, Recording, ReferenceStream, Segment
+from imunity.synthetic import _integrate, make_recording
 
 NAMES = ('pelvis', 'thigh', 'shank', 'foot')
 
@@ -119,7 +119,7 @@ def test_half_stride_individual_offset_in_periodic_gait_is_undecided(monkeypatch
     """Perfectly periodic gait with the common lag known: half a stride on one IMU's own clock cannot be told from
     a left/right exchange, so the two shanks must come out undecided (step 3's re-run) and keep their declared
     segments, not be exchanged."""
-    from mocapref.errors import e09_segment_assignment as S
+    from imunity.errors import e09_segment_assignment as S
     monkeypatch.setattr(S, 'common_offset', lambda streams, *a: S.estimate_time_lag(
         streams.grid, np.ones(len(streams.grid)), streams.grid, np.ones(len(streams.grid)), 0.0))
     rec = gait(periodic=True)
@@ -144,7 +144,7 @@ def test_large_individual_offset_is_not_called_a_wrong_segment(clean):
 
 def test_handler_counts_imus_and_gives_them_back(clean):
     from memory_loader import MemoryLoader
-    from mocapref.errors import e09_segment_assignment as H
+    from imunity.errors import e09_segment_assignment as H
 
     short = make_recording(duration_s=5.0, segment_names=NAMES, seed=4)  # shorter than one window: not checked
     loader = MemoryLoader({'clean': clean, 'swapped': exchanged(clean, {'thigh': 'foot', 'foot': 'thigh'}),

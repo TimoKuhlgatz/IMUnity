@@ -1,7 +1,7 @@
 """Sessions as the documentation states them (plus Trento's running clocks and IS2B's blocks): Geneva per
 participant, Trento per participant except subject 9's last trial, IS2B per plane and range of motion with the
 functional trials alone, every other dataset each trial alone. No data needed: the trial keys are set directly."""
-from mocapref.datasets._bridge import READER_LOADERS
+from imunity.datasets._bridge import READER_LOADERS
 
 
 def loader(name, trials):

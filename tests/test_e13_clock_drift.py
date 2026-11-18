@@ -2,8 +2,8 @@
 drift is counted and removed by the corrected loader; a clean trial is not counted. The check itself is tested in
 test_errors_known_answer.py."""
 from memory_loader import MemoryLoader
-from mocapref.errors import e13_clock_drift as M
-from mocapref.synthetic import make_recording
+from imunity.errors import e13_clock_drift as M
+from imunity.synthetic import make_recording
 
 
 def test_handler_counts_and_removes_a_drift():

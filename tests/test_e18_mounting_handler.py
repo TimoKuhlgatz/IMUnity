@@ -5,8 +5,8 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from memory_loader import MemoryLoader
-from mocapref.errors import e18_mounting as M
-from mocapref.synthetic import make_recording
+from imunity.errors import e18_mounting as M
+from imunity.synthetic import make_recording
 
 MOUNTING = Rotation.from_euler('xyz', [20, -10, 90], degrees=True)
 

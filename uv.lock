@@ -371,6 +371,47 @@ wheels = [
 ]
 
 [[package]]
+name = "imunity"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "dfjimu" },
+    { name = "ezc3d" },
+    { name = "h5py" },
+    { name = "matplotlib" },
+    { name = "numba" },
+    { name = "numpy" },
+    { name = "openpyxl" },
+    { name = "pandas" },
+    { name = "pyarrow" },
+    { name = "qmt" },
+    { name = "scipy" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "dfjimu", specifier = ">=0.4.1" },
+    { name = "ezc3d", specifier = ">=1.7.2" },
+    { name = "h5py", specifier = ">=3.16.0" },
+    { name = "matplotlib" },
+    { name = "numba", specifier = ">=0.68.1" },
+    { name = "numpy" },
+    { name = "openpyxl", specifier = ">=3.1.5" },
+    { name = "pandas" },
+    { name = "pyarrow", specifier = ">=26.0.0" },
+    { name = "qmt", specifier = ">=0.2.4" },
+    { name = "scipy" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest" }]
+
+[[package]]
 name = "iniconfig"
 version = "2.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -473,47 +514,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/94/2e/6d1d33f242c705b5c6c6fb3f0fc141add51cb1abb62912e59de0835d28c4/matplotlib-3.11.2-cp313-cp313-win_amd64.whl", hash = "sha256:bc067c462a86f0e57bf52fc6e058d90171a5420007dac00c46e90153050c69a7", size = 9349539, upload-time = "2026-09-11T19:03:54.534Z" },
     { url = "https://files.pythonhosted.org/packages/bb/bb/c0aa86a7f4c0e62f1c3c0711e361f6f23f87eb9018732a5e11994bd1b7ec/matplotlib-3.11.2-cp313-cp313-win_arm64.whl", hash = "sha256:3e8576f7c47e02fd4f21f44171302d2d1d58d4471d46da3d71fe8899d19539d9", size = 9028295, upload-time = "2026-09-11T19:03:57.261Z" },
 ]
-
-[[package]]
-name = "mocapref"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "dfjimu" },
-    { name = "ezc3d" },
-    { name = "h5py" },
-    { name = "matplotlib" },
-    { name = "numba" },
-    { name = "numpy" },
-    { name = "openpyxl" },
-    { name = "pandas" },
-    { name = "pyarrow" },
-    { name = "qmt" },
-    { name = "scipy" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "dfjimu", specifier = ">=0.4.1" },
-    { name = "ezc3d", specifier = ">=1.7.2" },
-    { name = "h5py", specifier = ">=3.16.0" },
-    { name = "matplotlib" },
-    { name = "numba", specifier = ">=0.68.1" },
-    { name = "numpy" },
-    { name = "openpyxl", specifier = ">=3.1.5" },
-    { name = "pandas" },
-    { name = "pyarrow", specifier = ">=26.0.0" },
-    { name = "qmt", specifier = ">=0.2.4" },
-    { name = "scipy" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest" }]
 
 [[package]]
 name = "msgpack"

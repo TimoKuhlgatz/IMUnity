@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from mocapref import errors as E
-from mocapref.synthetic import make_recording
+from imunity import errors as E
+from imunity.synthetic import make_recording
 
 
 @pytest.fixture(scope='module')
@@ -77,7 +77,7 @@ def test_segment_without_common_time_is_undecided_and_the_others_still_count():
 def test_imus_on_separate_clocks_end_on_the_reference_clock():
     """Three IMUs, each on its own clock (0.05, 0.05 and 2.0 s against the reference): the trial's median is removed
     first, then each IMU by its own rest; afterwards no IMU shows an offset."""
-    from mocapref.errors.e12_time_offset import remove_sensor_offsets
+    from imunity.errors.e12_time_offset import remove_sensor_offsets
     rec = make_recording(duration_s=30.0, offset_s=0.05, segment_names=('a', 'b', 'c'))
     rec.segments['c'].imu.start_s += 2.0
     result = E.check_for_synchronisation_offset(rec)
@@ -140,7 +140,7 @@ def test_drift_is_tested_from_60_s_on():
 
 
 def test_windows_cover_the_whole_recording_with_at_least_half_overlap():
-    from mocapref.errors.e13_clock_drift import window_starts
+    from imunity.errors.e13_clock_drift import window_starts
     starts = window_starts(0.0, 70.0)
     assert starts[0] == 0.0 and starts[-1] + 30.0 == pytest.approx(70.0)
     assert np.all(np.diff(starts) <= 15.0 + 1e-9)
@@ -258,7 +258,7 @@ def test_shared_drift_is_not_a_rate_mismatch():
 
 
 def test_trial_pairing_recovers_a_shift_by_an_extra_take_and_a_swap():
-    from mocapref.errors.e08_trial_pairing import (assign_any_order, assign_in_order, imu_speeds, reference_speeds, score,
+    from imunity.errors.e08_trial_pairing import (assign_any_order, assign_in_order, imu_speeds, reference_speeds, score,
                                               window_candidates)
     recs = [make_recording(duration_s=40.0, seed=10 + k, segment_names=('a', 'b', 'c')) for k in range(9)]
     imu = [imu_speeds(r) for r in recs[:8]]  # eight IMU trials

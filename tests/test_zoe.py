@@ -2,9 +2,9 @@
 import numpy as np
 import pytest
 
-from mocapref import effect
-from mocapref.synthetic import make_recording
-from mocapref.zoe import COV_LNK_GRID, COV_W_GRID, PUBLISHED_COV_LNK, PUBLISHED_COV_W, lowpass
+from imunity import effect
+from imunity.synthetic import make_recording
+from imunity.zoe import COV_LNK_GRID, COV_W_GRID, PUBLISHED_COV_LNK, PUBLISHED_COV_W, lowpass
 
 def test_clean_joint_gives_a_small_error_after_tuning():
     """Clean synthetic trials: tuned on two, the relative orientation of two unseen trials is recovered."""
@@ -33,7 +33,7 @@ def test_low_pass_cutoff_is_6_hz_at_every_rate(rate):
 
 def test_offset_correction_restores_the_clean_error_with_zoe():
     """The time-offset known-answer case of test_effect.py, run with the calibration-free estimator."""
-    from mocapref import errors as E
+    from imunity import errors as E
     kw = dict(duration_s=60.0, reference_rate_hz=100.0, seed=1, linear_acc_mps2=3.0)
 
     def tuned_error(rec):
@@ -57,7 +57,7 @@ def test_unknown_method_is_refused():
 def test_a_diverging_grid_point_counts_as_worst_and_keeps_the_trial(monkeypatch):
     """A filter run that diverges (non-finite covariance, LinAlgError) gives an infinite error at that grid point;
     the trial still takes part with its other grid points (on Camargo, two trials had otherwise been dropped)."""
-    from mocapref import zoe
+    from imunity import zoe
     real_run = zoe.ZoeInputs.run
 
     def run(self, cov_lnk, cov_w):

@@ -7,11 +7,11 @@ import pytest
 from scipy.signal import butter, filtfilt
 from scipy.spatial.transform import Rotation
 
-from mocapref import errors as E
-from mocapref.errors.e18_mounting import (combine_with_pool, fit_information, mount_trial, pooled_rotations,
+from imunity import errors as E
+from imunity.errors.e18_mounting import (combine_with_pool, fit_information, mount_trial, pooled_rotations,
                                           trial_scatter, uncertainty_deg)
-from mocapref.motion_onset import convergence_window, motion_onset_s
-from mocapref.synthetic import make_recording, smooth_rate
+from imunity.motion_onset import convergence_window, motion_onset_s
+from imunity.synthetic import make_recording, smooth_rate
 
 MOUNTING = Rotation.from_euler('xyz', [20, -10, 90], degrees=True)
 
@@ -87,7 +87,7 @@ def _window(seed, peak=200.0, minor=1.0, noise_dps=10.0, grow=0.15, seconds=10.0
 
 
 def _fit(g, w):
-    from mocapref.rotations import best_rotation
+    from imunity.rotations import best_rotation
     return best_rotation(g, w)[0]
 
 

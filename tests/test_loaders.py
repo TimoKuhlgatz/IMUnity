@@ -3,7 +3,7 @@ are not on this machine."""
 import numpy as np
 import pytest
 
-from mocapref.datasets import LOADERS, load_dataset
+from imunity.datasets import LOADERS, load_dataset
 
 # Properties of the deposits (measured on the first trial), not loader faults: the check they would fail is skipped.
 KNOWN = {

@@ -3,9 +3,9 @@ fills in a rigid marker cluster are found, correctly flagged gaps and fills that
 not, and the correction marks exactly the filled frames invalid."""
 import numpy as np
 
-from mocapref.errors.e04_gap_fill import (check_for_gap_fill, filled_frames, remove_gap_fill, stretches,
+from imunity.errors.e04_gap_fill import (check_for_gap_fill, filled_frames, remove_gap_fill, stretches,
                                      unmeasured_markers)
-from mocapref.synthetic import make_recording
+from imunity.synthetic import make_recording
 
 
 def cluster_from(rec, segment, seed=1, noise_mm=0.05):
@@ -87,7 +87,7 @@ def test_float32_storage():
 
 def test_handler_counts_stretches_and_masks_the_filled_frames():
     from memory_loader import MemoryLoader
-    from mocapref.errors import e04_gap_fill as H
+    from imunity.errors import e04_gap_fill as H
 
     data = {}
     for i in range(2):

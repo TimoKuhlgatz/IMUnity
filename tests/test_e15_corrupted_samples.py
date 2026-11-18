@@ -7,9 +7,9 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from mocapref import errors as E
-from mocapref.errors.e15_corrupted_samples import needle_runs, reference_speed_at
-from mocapref.synthetic import make_recording
+from imunity import errors as E
+from imunity.errors.e15_corrupted_samples import needle_runs, reference_speed_at
+from imunity.synthetic import make_recording
 
 
 @pytest.fixture(scope='module')
@@ -133,7 +133,7 @@ def test_handler_counts_runs_and_masks_them(noisy):
     """Dataset level: one trial with a single spike and a TUK-like pair, one clean; two runs counted, three samples
     marked invalid by the corrected loader."""
     from memory_loader import MemoryLoader
-    from mocapref.errors import e15_corrupted_samples as M
+    from imunity.errors import e15_corrupted_samples as M
     rec = noisy.copy()
     rec['thigh'].imu.gyr[1000] = np.radians([400.0, 5000.0, -10.0])
     rec['shank'].imu.gyr[2000] = np.radians([445.0, 5169.0, -12.0])

@@ -5,8 +5,8 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from mocapref.errors import e21_accelerometer_bias as AB
-from mocapref.synthetic import make_recording
+from imunity.errors import e21_accelerometer_bias as AB
+from imunity.synthetic import make_recording
 
 BIAS = np.array([0.15, -0.30, 0.90])  # m/s², about IS2B's tibia
 
@@ -74,8 +74,8 @@ def test_handler_reads_the_bias_below_the_mounting_and_subtracts_it_turned():
     through a chain whose mounting correction turned the accelerometer, finds the bias in the sensor frame, and the
     corrected loader subtracts it in the turned frame."""
     from memory_loader import MemoryLoader
-    from mocapref.errors import e21_accelerometer_bias as M
-    from mocapref.errors._report import CorrectedLoader
+    from imunity.errors import e21_accelerometer_bias as M
+    from imunity.errors._report import CorrectedLoader
     rng = np.random.default_rng(3)
     bias = np.array([0.6, -0.4, 0.3])
     recs = {}

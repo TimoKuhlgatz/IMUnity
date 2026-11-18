@@ -2,8 +2,8 @@
 filter runs, and a trial too short from its motion onset is refused for its role."""
 import pytest
 
-from mocapref.effect import NotScored, test_on_trial as score_test_trial, trial_grid
-from mocapref.synthetic import make_recording
+from imunity.effect import NotScored, test_on_trial as score_test_trial, trial_grid
+from imunity.synthetic import make_recording
 
 
 def _still(rec):

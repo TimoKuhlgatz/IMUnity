@@ -4,8 +4,8 @@ unpaired, the others kept, and an unpaired static recording is not counted. The 
 test_errors_known_answer.py."""
 from memory_loader import MemoryLoader
 
-from mocapref.errors import e08_trial_pairing as H
-from mocapref.synthetic import make_recording
+from imunity.errors import e08_trial_pairing as H
+from imunity.synthetic import make_recording
 
 
 def test_shifted_references_are_found_and_static_recordings_not_counted():
@@ -30,14 +30,14 @@ def test_shifted_references_are_found_and_static_recordings_not_counted():
 
 
 def test_trento_is_corrected_to_its_repaired_pairing_with_the_earlier_corrections_kept(monkeypatch):
-    from mocapref.errors._report import CorrectedLoader
-    from mocapref.errors._rows import reader_of
+    from imunity.errors._report import CorrectedLoader
+    from imunity.errors._rows import reader_of
 
     class Deposited:
         name = 'bonfiglio_deposited'
 
     chain = CorrectedLoader(CorrectedLoader(Deposited(), lambda rec, t: rec, 'first'), lambda rec, t: rec, 'second')
-    import mocapref.datasets as D
+    import imunity.datasets as D
     monkeypatch.setattr(D, 'load_dataset', lambda name: type('Repaired', (), {'name': name})())
     fixed = H.correct(chain, None)
     assert reader_of(fixed) == 'bonfiglio' and fixed.label == 'second' and fixed.base.label == 'first'

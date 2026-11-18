@@ -4,13 +4,13 @@ offset check must recover the injected offset, also when the clock is irregular 
 import numpy as np
 import pytest
 
-from mocapref import errors as E
-from mocapref.datasets.readers.characterisation.schema import Pair, Pose
-from mocapref.datasets.readers.characterisation.schema import Recording as ReaderRecording
-from mocapref.datasets.readers.characterisation.schema import Segment as ReaderSegment
-from mocapref.datasets.readers.characterisation.schema import SensorStream
-from mocapref.datasets._bridge import to_recording
-from mocapref.synthetic import make_recording
+from imunity import errors as E
+from imunity.datasets.readers.characterisation.schema import Pair, Pose
+from imunity.datasets.readers.characterisation.schema import Recording as ReaderRecording
+from imunity.datasets.readers.characterisation.schema import Segment as ReaderSegment
+from imunity.datasets.readers.characterisation.schema import SensorStream
+from imunity.datasets._bridge import to_recording
+from imunity.synthetic import make_recording
 
 
 def as_reader_format(rec, epoch_s=50.0, imu_times=None):

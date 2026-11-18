@@ -3,10 +3,10 @@ reported as not checked (undecided, with a note), and the correction switches Ge
 from its raw logs while keeping every earlier correction. The rebuild itself is tested in test_grouvel_raw.py."""
 from memory_loader import MemoryLoader
 
-from mocapref.errors import e10_mis_assembled_streams as H
-from mocapref.errors._report import CorrectedLoader
-from mocapref.errors._rows import reader_of
-from mocapref.synthetic import make_recording
+from imunity.errors import e10_mis_assembled_streams as H
+from imunity.errors._report import CorrectedLoader
+from imunity.errors._rows import reader_of
+from imunity.synthetic import make_recording
 
 
 def test_other_datasets_are_not_checked():
@@ -19,7 +19,7 @@ def test_other_datasets_are_not_checked():
 
 def test_handler_notes_unchecked_datasets(monkeypatch):
     loader = MemoryLoader({'t0': make_recording(duration_s=5.0)})
-    import mocapref.errors._report as R
+    import imunity.errors._report as R
     monkeypatch.setattr(R, 'source_loader', lambda name, data, number, cache_dir=None: loader)
     report = H.handle_mis_assembled_streams(['synthetic'])
     assert report.notes['synthetic'] == [H.NOT_CHECKED]
@@ -31,7 +31,7 @@ def test_geneva_is_switched_to_the_rebuilt_streams_with_the_earlier_corrections_
         name = 'grouvel'
 
     chain = CorrectedLoader(Published(), lambda rec, t: rec, 'clipping')
-    import mocapref.datasets as D
+    import imunity.datasets as D
     monkeypatch.setattr(D, 'load_dataset', lambda name: type('Rebuilt', (), {'name': name})())
     fixed = H.correct(chain, None)
     assert reader_of(fixed) == 'grouvel_raw' and fixed.label == 'clipping'

@@ -5,8 +5,8 @@ and stuck channels) and test_e05_clipping.py (railed channels)."""
 import numpy as np
 from memory_loader import MemoryLoader
 
-from mocapref.errors import e07_dead_channels as H
-from mocapref.synthetic import make_recording
+from imunity.errors import e07_dead_channels as H
+from imunity.synthetic import make_recording
 
 
 def noisy(seed=0):

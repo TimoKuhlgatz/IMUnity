@@ -1,6 +1,6 @@
 """The order of correction: every handled error 1-22 has a module whose PARTS entry carries its own number, and the
 readers switch where the order says (Trento re-paired after error 8, Geneva rebuilt from error 8's check on)."""
-from mocapref import correction as C
+from imunity import correction as C
 
 
 def test_every_error_has_its_parts_under_its_own_number():

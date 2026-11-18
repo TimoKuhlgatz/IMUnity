@@ -1,4 +1,4 @@
-# mocapref: errors in public IMU datasets with an optical motion-capture reference
+# IMUnity: errors in public IMU datasets with an optical motion-capture reference
 
 Code to detect and correct the errors found in 18 public datasets that record inertial sensors (IMUs) together
 with an optical motion-capture reference, and to measure how the corrections change relative orientation (joint
@@ -11,7 +11,7 @@ angle) estimation with two state-of-the-art filters (MEKF and zoe).
 ```
 images/                      visual abstract (errors in the order of correction) and dataset overview
 splits/                      saved tuning/test split of every dataset (used by the effect analysis)
-src/mocapref/
+src/imunity/
   recording.py               the common data model: Recording -> Segment -> ImuStream + ReferenceStream
   datasets/                  one loader per dataset; every loader returns the same Recording structure
   errors/                    one module per error, named by its number in the order of correction:
@@ -42,24 +42,24 @@ uv run pytest -q          # about 5 minutes
 
 ### Get the data
 
-The data are not part of the repository. `mocapref.download` fetches every dataset from the host where its
+The data are not part of the repository. `imunity.download` fetches every dataset from the host where its
 depositors published it and unpacks it into the layout the loaders read:
 
 ```bash
-uv run python -m mocapref.download                       # all 18 datasets
-uv run python -m mocapref.download is2b dfjimu reemc     # a subset
+uv run python -m imunity.download                       # all 18 datasets
+uv run python -m imunity.download is2b dfjimu reemc     # a subset
 ```
 
 ```python
-from mocapref.download import download, DATASETS
+from imunity.download import download, DATASETS
 download(['is2b', 'grouvel'])        # {'is2b': 'done', 'grouvel': 'done'}
 DATASETS['is2b']                     # host, DOI, licence and the files taken
 ```
 
-- **Where**: `<MOCAPREF_DATA>/<dataset>/`; if that variable is not set, `data/` in this repository. Files
+- **Where**: `<IMUNITY_DATA>/<dataset>/`; if that variable is not set, `data/` in this repository. Files
   derived from the deposits (the OpenSense reference rebuilt from the markers, the Geneva IMU streams rebuilt from
-  the raw logs) go to `MOCAPREF_PREPARED`, default `<MOCAPREF_DATA>/_prepared`. Set both before importing
-  `mocapref`.
+  the raw logs) go to `IMUNITY_PREPARED`, default `<IMUNITY_DATA>/_prepared`. Set both before importing
+  `imunity`.
 - **What**: only the files the loaders read, and the participants our results are based on: Delaware compliant
   terrain SUB01-SUB02 (`--all-participants` adds SUB03-SUB20, 54 GB, not used in the paper) and Camargo part 1
   (AB06-AB14). About 61 GB to download.
@@ -67,15 +67,15 @@ DATASETS['is2b']                     # host, DOI, licence and the files taken
   our results were computed on; the two GitHub sources are pinned to a commit. Interrupted downloads resume; a
   finished dataset is skipped on the next call.
 - **By hand**: OpenSense is on SimTK, which allows downloads only after a (free) login: put `study20-latest.tar.gz`
-  from https://simtk.org/plugins/datashare/?group_id=2164 into `<MOCAPREF_DATA>/opensense/` and run the download
+  from https://simtk.org/plugins/datashare/?group_id=2164 into `<IMUNITY_DATA>/opensense/` and run the download
   again, which checks and unpacks it. The printed four-segment chain (`mfimt_d01`) is not publicly deposited; its
-  file `chain_experiment_d01.npz` goes into `<MOCAPREF_DATA>/mfimt/`.
+  file `chain_experiment_d01.npz` goes into `<IMUNITY_DATA>/mfimt/`.
 - **After Geneva**: the download rebuilds Geneva's IMU streams from its raw session logs (about a minute), which the
   correction of the mis-assembled streams (error 10) reads.
 - **Tools**: Hip-ROM-Y is a RAR5 archive; unpacking it needs `bsdtar` (libarchive), `7zz`, `unrar` or `unar`.
 
 Every loader also accepts `root=...` for data elsewhere; the robot arm (`dfjimu`) and the printed chain
-(`mfimt_d01`) can also be pointed elsewhere with `MOCAPREF_DFJIMU` and `MOCAPREF_MFIMT`. Loader tests are skipped
+(`mfimt_d01`) can also be pointed elsewhere with `IMUNITY_DFJIMU` and `IMUNITY_MFIMT`. Loader tests are skipped
 when a dataset is not found.
 
 ## The datasets
@@ -84,14 +84,14 @@ when a dataset is not found.
 
 Short names: `tuk6min`, `opensense`, `fullbody17`, `camargo`, `wmcg`, `compliant_terrain`, `hip_rom_y`, `is2b`,
 `grouvel`, `bonfiglio`, `grimmer_stairs`, `ultramocap`, `diodem`, `dfjimu`, `mfimt_d01`, `reemc`, `openaxes`,
-`repoimu` (the list is `mocapref.datasets.PAPER_DATASETS`). Two helper readers exist besides them: `grouvel_raw`
+`repoimu` (the list is `imunity.datasets.PAPER_DATASETS`). Two helper readers exist besides them: `grouvel_raw`
 (Geneva with its IMU streams rebuilt from the raw session logs) and `bonfiglio_deposited` (Trento with the deposit's
 own trial pairing).
 
 ### Load one or several datasets
 
 ```python
-from mocapref.datasets import load_dataset, PAPER_DATASETS
+from imunity.datasets import load_dataset, PAPER_DATASETS
 
 loader = load_dataset('dfjimu')
 print(loader.trials()[:3])
@@ -111,7 +111,7 @@ for name in ['is2b', 'hip_rom_y', 'camargo']:          # several datasets: the s
 Numbered in the order in which they are detected and corrected: the check of error N runs on data already corrected
 for every error with a smaller number, with one exception: gaps filled without a flag (4) are masked before reference
 jumps or flips (3) are looked for, so the jump check runs on data corrected for errors 1, 2 and 4, and the gap check
-on data corrected for errors 1 and 2 (`mocapref.correction.SEQUENCE`). *fix* = repaired, *mask* = samples or frames marked invalid,
+on data corrected for errors 1 and 2 (`imunity.correction.SEQUENCE`). *fix* = repaired, *mask* = samples or frames marked invalid,
 *report* = flagged only.
 
 | # | Error | Module | Data |
@@ -148,7 +148,7 @@ Every error has one function `handle_<error>(datasets, data=..., notes=..., proc
 of the datasets and returns an `ErrorReport`:
 
 ```python
-from mocapref.errors import handle_time_offset
+from imunity.errors import handle_time_offset
 
 report = handle_time_offset(['dfjimu', 'is2b'], processes=8)   # data='deposited': the files as published
 print(report)              # prevalence per dataset: trials checked, trials with the error, occurrences, undecided
@@ -168,7 +168,7 @@ by other errors). Notes can also be passed directly: `handle_clipping(['camargo'
 On a single recording, the check and the correction can be called directly:
 
 ```python
-from mocapref import errors
+from imunity import errors
 
 result = errors.check_for_synchronisation_offset(rec)
 print(result)                                   # detected or not, with the estimate in plain words
@@ -178,7 +178,7 @@ fixed = errors.remove_synchronisation_offset(rec, result)
 ### Correct all errors in the agreed order
 
 ```python
-from mocapref.correction import correct_in_order, run_in_order, prevalence_table
+from imunity.correction import correct_in_order, run_in_order, prevalence_table
 
 loader = correct_in_order('camargo', cache_dir='output/cache')           # every handled error corrected
 loader = correct_in_order('camargo', up_to=12, cache_dir='output/cache') # up to and including error 12
@@ -192,7 +192,7 @@ with `cache_dir` the results are kept and later calls read them back.
 ## Influence on relative orientation estimation (MEKF, zoe or both)
 
 ```python
-from mocapref.effect_analysis import EffectAnalysis
+from imunity.effect_analysis import EffectAnalysis
 
 ea = EffectAnalysis(['dfjimu', 'is2b'], methods=('MEKF', 'zoe'), processes=8, cache_dir='output/cache')
 summary = ea.run()        # per dataset and method: tuned R and Q, test error (median, mean) per condition
@@ -215,7 +215,7 @@ IMU (its housing's marker cluster) and its skin-marker segment frame move agains
 that carry both (TUK six-minute walk, Geneva gait, Hankyong full body), and the floor this sets for a joint angle.
 
 ```python
-from mocapref.soft_tissue import segment_motion, joint_floor, summarize
+from imunity.soft_tissue import segment_motion, joint_floor, summarize
 
 segments, joints = summarize(segment_motion(processes=8), joint_floor(processes=8))
 ```

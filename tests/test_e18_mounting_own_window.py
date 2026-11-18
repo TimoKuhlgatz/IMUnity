@@ -5,12 +5,12 @@ window."""
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from mocapref.effect import _joint_runs, segment_window_skip_s
-from mocapref.errors.e18_mounting import mount_trial
-from mocapref.motion_onset import SEGMENT_WINDOWS_KEY, motion_onset_s
-from mocapref.resample import resample_to_common_grid
-from mocapref.rotations import best_rotation
-from mocapref.synthetic import make_recording
+from imunity.effect import _joint_runs, segment_window_skip_s
+from imunity.errors.e18_mounting import mount_trial
+from imunity.motion_onset import SEGMENT_WINDOWS_KEY, motion_onset_s
+from imunity.resample import resample_to_common_grid
+from imunity.rotations import best_rotation
+from imunity.synthetic import make_recording
 
 MOUNTING = Rotation.from_euler('xyz', [30, -50, 120], degrees=True)
 STILL_S = 30.0
@@ -55,6 +55,6 @@ def test_still_segment_is_fitted_on_its_own_window_and_scored_after_it():
 def test_without_the_rule_the_still_segment_gets_no_rotation():
     """The trial's window holds no motion of 'lower': the window fit is empty, so without the own-window rule its
     sensor axes would be left as they were."""
-    from mocapref.errors.e18_mounting import check_for_mounting_in_convergence
+    from imunity.errors.e18_mounting import check_for_mounting_in_convergence
     res = check_for_mounting_in_convergence(late_segment())
     assert res.per_segment['lower']['fit'] is None and res.per_segment['upper']['fit'] is not None

@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mocapref import tuning_split as S
+from imunity import tuning_split as S
 
 
 def lengths(rows):
@@ -69,8 +69,8 @@ def test_a_saved_split_is_read_back_and_not_drawn_again(tmp_path, monkeypatch):
 def test_tuning_across_trials_gives_a_low_error_on_unseen_trials():
     """Clean synthetic trials: parameters tuned on two trials give a small error on two others, and a trial split in
     time is scored on its second half only."""
-    from mocapref.effect import test_on_trial, tune_on_trials
-    from mocapref.synthetic import make_recording
+    from imunity.effect import test_on_trial, tune_on_trials
+    from imunity.synthetic import make_recording
     trials = [make_recording(duration_s=40.0, reference_rate_hz=100.0, seed=s, linear_acc_mps2=3.0) for s in range(4)]
     r, q, grid = tune_on_trials(trials[:2])
     assert grid[(r, q)] < 2.0
@@ -83,8 +83,8 @@ def test_tuning_ignores_the_first_10_s():
     """A reference rotated by 90 degrees during the first 10 s of a tuning trial must not change the tuning error."""
     from scipy.spatial.transform import Rotation
 
-    from mocapref.effect import tune_on_trials
-    from mocapref.synthetic import make_recording
+    from imunity.effect import tune_on_trials
+    from imunity.synthetic import make_recording
     clean = make_recording(duration_s=30.0, reference_rate_hz=100.0, seed=0, linear_acc_mps2=3.0)
     broken = clean.copy()
     ref = next(iter(broken.segments.values())).reference
@@ -101,8 +101,8 @@ def test_tuning_ignores_the_first_10_s():
 def test_tuning_weights_trials_by_their_assessed_length():
     """Tuning error of a 70 s and a 21 s trial = their errors weighted by 60 s and 11 s scored (a trial needs 20 s
     from its motion onset to tune)."""
-    from mocapref.effect import test_on_trial, tune_on_trials
-    from mocapref.synthetic import make_recording
+    from imunity.effect import test_on_trial, tune_on_trials
+    from imunity.synthetic import make_recording
     long, short = (make_recording(duration_s=d, reference_rate_hz=100.0, seed=s, linear_acc_mps2=3.0)
                    for d, s in ((70.0, 0), (21.0, 1)))
     r, q = 1e-2, 1.0
@@ -120,5 +120,5 @@ def test_effect_datasets_are_the_18_with_a_saved_tuning_and_test_half():
 
 
 def test_overview_order_lists_every_paper_dataset_once():
-    from mocapref.datasets import PAPER_DATASETS
+    from imunity.datasets import PAPER_DATASETS
     assert sorted(S.OVERVIEW_ORDER) == sorted(PAPER_DATASETS) and len(set(S.OVERVIEW_ORDER)) == 18

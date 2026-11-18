@@ -5,8 +5,8 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from mocapref.errors.e22_gravity_removed import check_for_gravity_removed, restore_removed_gravity, vendor_up_in_sensor
-from mocapref.synthetic import GRAVITY, make_recording
+from imunity.errors.e22_gravity_removed import check_for_gravity_removed, restore_removed_gravity, vendor_up_in_sensor
+from imunity.synthetic import GRAVITY, make_recording
 
 MOUNTING = Rotation.from_euler('xyz', [30, -50, 120], degrees=True)  # segment frame -> sensor frame
 G = float(np.linalg.norm(GRAVITY))
@@ -97,7 +97,7 @@ def test_handler_counts_and_restores_removed_gravity():
     """Dataset level: a resting trial whose gravity was taken off with the vendor quaternion is counted per sensor
     and gets gravity back from the corrected loader; a clean resting trial is not counted."""
     from memory_loader import MemoryLoader
-    from mocapref.errors import e22_gravity_removed as M
+    from imunity.errors import e22_gravity_removed as M
     clean = resting()
     bad = resting()
     q = bad.metadata = {'segments': {}}

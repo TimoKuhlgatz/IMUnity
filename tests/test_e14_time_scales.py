@@ -2,8 +2,8 @@
 IMU running at its own rate is counted, left unchanged in the agreed order, and aligned by the optional rescale(). The check itself is tested in
 test_errors_known_answer.py."""
 from memory_loader import MemoryLoader
-from mocapref.errors import e14_time_scales as M
-from mocapref.synthetic import make_recording
+from imunity.errors import e14_time_scales as M
+from imunity.synthetic import make_recording
 
 
 def test_handler_counts_and_aligns_the_deviating_imu():

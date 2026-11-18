@@ -3,10 +3,10 @@ a level the check is not told are found, natural peaks, coarse storage and a mid
 import numpy as np
 import pytest
 
-from mocapref import errors as E
-from mocapref.errors.e05_clipping import (RAIL_LIMIT, SENSORS, channel_noise, cut_off_samples, minimum_limits,
+from imunity import errors as E
+from imunity.errors.e05_clipping import (RAIL_LIMIT, SENSORS, channel_noise, cut_off_samples, minimum_limits,
                                           side_plateaus)
-from mocapref.synthetic import make_recording
+from imunity.synthetic import make_recording
 
 
 def noisy(rate_hz=100.0, seed=0):
@@ -193,7 +193,7 @@ def test_handler_counts_clipped_plateaus_and_masks_only_clipping():
     """check_dataset / prevalence / correct on a small in-memory dataset: one clipped trial, one clean trial and two
     trials railed at the same level (railed channels belong to error 7: counted there, not here)."""
     from memory_loader import MemoryLoader
-    from mocapref.errors import e05_clipping as H
+    from imunity.errors import e05_clipping as H
 
     clipped = noisy(seed=3)
     imu = clipped.segments['upper'].imu

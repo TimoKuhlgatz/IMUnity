@@ -6,9 +6,9 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from mocapref.errors.e19_e20_accelerometer_sign import (check_for_negated_accelerometer, name_vertical,
+from imunity.errors.e19_e20_accelerometer_sign import (check_for_negated_accelerometer, name_vertical,
                                                remove_negated_accelerometer, trial_vertical)
-from mocapref.synthetic import make_recording
+from imunity.synthetic import make_recording
 
 MOUNTING = Rotation.from_euler('xyz', [30, -50, 120], degrees=True)
 THREE = ('a', 'b', 'c')
@@ -99,7 +99,7 @@ def test_single_unit_falls_back_to_plus_z_and_is_reported():
 def test_all_units_negated_alike_leaves_the_relative_orientation_unchanged():
     """The case the vote cannot see is harmless: the MEKF's relative-orientation error is the same when every
     accelerometer of the trial is negated (equal to 1e-11 degrees), about 180° when one is."""
-    from mocapref.effect import test_on_trial as score
+    from imunity.effect import test_on_trial as score
     rec = make_recording(duration_s=40.0, seed=0, linear_acc_mps2=2.0)
     both, one = rec.copy(), rec.copy()
     for name in ('upper', 'lower'):
@@ -144,7 +144,7 @@ def test_handlers_count_the_negated_session_and_the_vertical():
     calls +y up. Error 20 counts P1's three trials and one sensor-session and negates b back; error 19 counts P2's
     three trials (vertical +y) and changes nothing."""
     from memory_loader import MemoryLoader
-    from mocapref.errors import e19_e20_accelerometer_sign as M
+    from imunity.errors import e19_e20_accelerometer_sign as M
     p1, p2 = negate(trials()), trials(world=Rotation.from_euler('x', -90, degrees=True))
     recs = {**{f'p1_{i}': r for i, r in enumerate(p1)}, **{f'p2_{i}': r for i, r in enumerate(p2)}}
     loader = MemoryLoader(recs, participant={t: t[:2].upper() for t in recs})

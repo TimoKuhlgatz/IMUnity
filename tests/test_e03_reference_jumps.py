@@ -3,9 +3,9 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from mocapref.errors.e03_reference_jumps import (MAX_SEGMENT_RATE_DPS, check_for_impossible_reference_steps,
+from imunity.errors.e03_reference_jumps import (MAX_SEGMENT_RATE_DPS, check_for_impossible_reference_steps,
                                             impossible_steps, remove_impossible_reference_steps)
-from mocapref.synthetic import make_recording
+from imunity.synthetic import make_recording
 
 
 @pytest.fixture(scope='module')
@@ -126,7 +126,7 @@ def test_flip_is_confirmed_by_the_other_segment(clean):
 
 def test_handler_counts_steps_and_masks_the_flipped_stretch():
     from memory_loader import MemoryLoader
-    from mocapref.errors import e03_reference_jumps as H
+    from imunity.errors import e03_reference_jumps as H
 
     rec = make_recording(duration_s=20.0, imu_rate_hz=100.0, reference_rate_hz=120.0, seed=1)
     flipped = rec.copy()

@@ -2,14 +2,14 @@
 import numpy as np
 import pytest
 
-from mocapref.datasets.grouvel_raw import REBUILD_DIR
+from imunity.datasets.grouvel_raw import REBUILD_DIR
 
 pytestmark = pytest.mark.skipif(not (REBUILD_DIR / 'match.csv').exists(), reason='Geneva raw rebuild not on disk')
 
 
 @pytest.fixture(scope='module')
 def loaders():
-    from mocapref.datasets import load_dataset
+    from imunity.datasets import load_dataset
     return load_dataset('grouvel'), load_dataset('grouvel_raw')
 
 
@@ -41,7 +41,7 @@ def test_clean_copy_trial_equals_the_deposit_shifted(loaders):
 
 
 def test_rebuilt_gait_trial_matches_the_reference_where_the_deposit_does_not(loaders):
-    from mocapref.errors import check_for_synchronisation_offset
+    from imunity.errors import check_for_synchronisation_offset
     deposited, rebuilt = loaders
     peak = {name: np.median([e['quality'] for e in check_for_synchronisation_offset(loader.load('P01/Gait_01'))
                              .per_segment.values()]) for name, loader in zip(('deposited', 'rebuilt'), loaders)}

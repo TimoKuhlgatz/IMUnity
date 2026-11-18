@@ -4,10 +4,10 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from mocapref import errors as E
-from mocapref import effect
-from mocapref.effect import relative_orientation_error_deg
-from mocapref.synthetic import make_recording
+from imunity import errors as E
+from imunity import effect
+from imunity.effect import relative_orientation_error_deg
+from imunity.synthetic import make_recording
 
 SKIP_S = 10.0  # scored from 10 s after the trial start (the synthetic trials move from the start)
 

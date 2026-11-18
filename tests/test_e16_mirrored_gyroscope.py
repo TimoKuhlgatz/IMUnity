@@ -6,9 +6,9 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from mocapref.errors.e16_mirrored_gyroscope import check_for_mirrored_gyroscope, choose_flip_by_slope, remove_mirrored_gyroscope
-from mocapref.recording import ImuStream, Recording, ReferenceStream, Segment
-from mocapref.synthetic import GRAVITY, _integrate, make_recording
+from imunity.errors.e16_mirrored_gyroscope import check_for_mirrored_gyroscope, choose_flip_by_slope, remove_mirrored_gyroscope
+from imunity.recording import ImuStream, Recording, ReferenceStream, Segment
+from imunity.synthetic import GRAVITY, _integrate, make_recording
 
 MOUNTING = Rotation.from_euler('xyz', [30, -50, 120], degrees=True)
 
@@ -113,7 +113,7 @@ def test_handler_counts_the_mirrored_session_and_flips_it_back():
     """Dataset level: participant P1's lower gyroscope is mirrored in both trials, P2 is clean; P1's two
     trial-segments count, and the corrected loader returns P1's original gyroscope."""
     from memory_loader import MemoryLoader
-    from mocapref.errors import e16_mirrored_gyroscope as M
+    from imunity.errors import e16_mirrored_gyroscope as M
     clean = trials(2)
     bad = flipped(trials(2), [1])
     recs = {'p1a': bad[0], 'p1b': bad[1], 'p2a': clean[0], 'p2b': clean[1]}

@@ -4,9 +4,9 @@ import numpy as np
 
 from scipy.spatial.transform import Rotation
 
-from mocapref.errors.e01_label_swaps import (SessionReference, _kabsch, check_for_label_swaps, local_positions,
+from imunity.errors.e01_label_swaps import (SessionReference, _kabsch, check_for_label_swaps, local_positions,
                                         remove_label_swaps)
-from mocapref.synthetic import make_recording
+from imunity.synthetic import make_recording
 
 LOCAL = np.array([[60.0, 0, 0], [0, 70.0, 0], [0, 0, 80.0], [-50.0, -50.0, 0]])
 
@@ -91,7 +91,7 @@ def test_handler_counts_and_repairs_a_swap_in_a_dataset():
     """check_dataset / prevalence / correct on a small in-memory dataset: one participant, six trials, one brief swap."""
     import pandas as pd
     from memory_loader import MemoryLoader
-    from mocapref.errors import e01_label_swaps as H
+    from imunity.errors import e01_label_swaps as H
 
     recs, clusters = session(range(6))
     truth = recs[5].segments['upper'].reference.orientation

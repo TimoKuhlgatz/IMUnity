@@ -4,9 +4,9 @@ reversal and a step are not flagged; a wrap that runs to the end of the trial is
 import numpy as np
 import pytest
 
-from mocapref import errors as E
-from mocapref.errors.e06_integer_overflow import overflow_stretches
-from mocapref.synthetic import make_recording
+from imunity import errors as E
+from imunity.errors.e06_integer_overflow import overflow_stretches
+from imunity.synthetic import make_recording
 
 R_GYR = np.deg2rad(500.0)  # a range the check is not told
 R_ACC = 4 * 9.81
@@ -117,7 +117,7 @@ def test_range_smaller_than_any_sensor_is_not_overflow():
 def test_handler_counts_stretches_and_unwraps_from_the_rows():
     import pandas as pd
     from memory_loader import MemoryLoader
-    from mocapref.errors import e06_integer_overflow as H
+    from imunity.errors import e06_integer_overflow as H
 
     rec = make_recording(duration_s=24.0, imu_rate_hz=100.0, seed=3)
     wrapped = rec.copy()

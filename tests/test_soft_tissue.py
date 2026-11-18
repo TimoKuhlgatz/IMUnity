@@ -3,7 +3,7 @@ positive segment motion and joint floor."""
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-from mocapref.soft_tissue import joint_error, segment_error
+from imunity.soft_tissue import joint_error, segment_error
 
 N = 2000
 
