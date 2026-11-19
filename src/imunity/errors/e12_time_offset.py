@@ -302,7 +302,7 @@ def remove_synchronisation_offset(recording: Recording, result: SynchronisationO
 # participant 9: its five sensors are about 2.94 s apart from each other. Everywhere else the IMUs share one clock,
 # so the median over the trusted segments is the better estimate for every IMU (the segments' own estimates scatter
 # by 0-3 ms around it, and the rare large disagreements are estimation failures or other errors, not offsets).
-SEPARATE_CLOCKS = {'bonfiglio': {'9'}}
+SEPARATE_CLOCKS = {'bonfiglio': {'9'}, 'bonfiglio_final': {'9'}, 'bonfiglio_final_deposited': {'9'}}
 
 
 def on_separate_clocks(dataset: str, participant) -> bool:

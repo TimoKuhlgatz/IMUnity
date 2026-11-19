@@ -60,6 +60,16 @@ def reader_of(loader) -> str:
     return getattr(loader, 'name', '')
 
 
+# Readers that serve the same IMU streams, sample for sample, and differ only in which optical recording each trial
+# is paired with (Trento as deposited and re-paired, error 8): a mask found on the IMU of the one holds for the other.
+SAME_IMU = {'bonfiglio_deposited': 'bonfiglio', 'bonfiglio_final_deposited': 'bonfiglio_final'}
+
+
+def same_imu(reader_a: str, reader_b: str) -> bool:
+    """True if the two readers serve the same IMU streams (SAME_IMU)."""
+    return SAME_IMU.get(reader_a, reader_a) == SAME_IMU.get(reader_b, reader_b)
+
+
 def rebase(loader, new_base):
     """The same chain of corrections as `loader`, on top of another reader (`new_base`)."""
     from ._report import CorrectedLoader

@@ -15,12 +15,11 @@ How we catch it:
        errors (of the sensor and of the median) and adds up over the recording to more than half a reference frame.
        Recordings shorter than 60 s, or with fewer than two sensors with a drift, are undecided.
 
-Correction: none in the agreed order. The error is counted and reported, and the data are passed on unchanged, as in
-the pipeline the paper's numbers come from. A repair is available but not applied (rescale(), remove_sensor_rate_mismatch):
-the time of each deviating IMU is stretched by its own deviation about the middle of the
-recording (as remove_clock_drift, but per sensor), t -> t - e * (t - t_mid): a new start time and sampling rate, no
-sample changed. The drift shared by all sensors and the constant offset stay for their own corrections. With two
-sensors both deviate by half their difference, since which one is off cannot be told.
+Correction (in the agreed order, after the clock drift of error 13): the time of each deviating IMU is stretched by
+its own deviation about the middle of the recording (as remove_clock_drift, but per sensor), t -> t - e * (t - t_mid):
+a new start time and sampling rate, no sample changed. The drift shared by all sensors and the constant offset stay
+for their own corrections. With two sensors both deviate by half their difference, since which one is off cannot be
+told.
 """
 from __future__ import annotations
 
@@ -180,17 +179,11 @@ def _rescale(rec, rows):
     return new
 
 
-def rescale(loader, rows):
-    """Not part of the agreed order: the time of every deviating IMU stretched by its own deviation about the middle
-    of the recording."""
+def correct(loader, rows):
+    """The time of every deviating IMU stretched by its own deviation about the middle of the recording."""
     return corrected(loader, _rescale, per_trial(rows), 'IMU time scales')
 
 
-def correct(loader, rows):
-    """Report only: the data are passed on unchanged (module description)."""
-    return loader
-
-
-SPEC = ErrorSpec(14, 'time_scales', 'report', 'IMUs of one trial on different time scales')
+SPEC = ErrorSpec(14, 'time_scales', 'fix', 'IMUs of one trial on different time scales')
 PARTS = {14: dict(spec=SPEC, check_dataset=check_dataset, prevalence=prevalence, correct=correct)}
 handle_time_scales = make_handler(PARTS[14])

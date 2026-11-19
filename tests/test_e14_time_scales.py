@@ -1,6 +1,6 @@
 """Known-answer test for the dataset-level handler of error 14 (IMUs of one trial on different time scales): the one
-IMU running at its own rate is counted, left unchanged in the agreed order, and aligned by the optional rescale(). The check itself is tested in
-test_errors_known_answer.py."""
+IMU running at its own rate is counted and aligned by the correction of the agreed order. The check itself is tested
+in test_errors_known_answer.py."""
 from memory_loader import MemoryLoader
 from imunity.errors import e14_time_scales as M
 from imunity.synthetic import make_recording
@@ -14,6 +14,7 @@ def test_handler_counts_and_aligns_the_deviating_imu():
     rows = M.check_dataset(loader, 'synthetic', 1)
     p = M.prevalence(rows)
     assert (p['trials_checked'], p['trials_detected'], p['occurrences'], p['undecided']) == (2, 1, 1, 1)
-    assert M.correct(loader, rows) is loader                      # report only in the agreed order
-    fixed = M.rescale(loader, rows)
+    fixed = M.correct(loader, rows)
     assert not M.check_for_sensor_rate_mismatch(fixed.load('apart')).detected
+    short = fixed.load('short').segments['c'].imu
+    assert short.rate_hz == loader.load('short').segments['c'].imu.rate_hz  # undecided trial left as it is

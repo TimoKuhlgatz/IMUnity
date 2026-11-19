@@ -28,7 +28,7 @@ from ..recording import Recording, Segment
 from ..rotations import best_rotation, interpolate, reference_angular_rate
 from ._result import CheckResult, entry
 from ._session import as_session, segments_by_name
-from .e03_reference_jumps import implausible_reference_frames
+from .e03_reference_jumps import MAX_SEGMENT_RATE_DPS, implausible_reference_frames
 
 ERROR = 'mounting misalignment'
 
@@ -46,13 +46,64 @@ class GyroscopeFit:
     samples: int
 
 
+def averaged_rate_pairs(segment: Segment, convention: str, span_s: float):
+    """Reference and gyroscope angular rate, both averaged over the same span (the mounting window fits).
+
+    Reference: its net rotation from frame i to frame i + k (k = span in frames, at least 1) divided by the time
+    between them, in the segment frame, placed at the middle of the span. Gyroscope: its mean over the same time
+    span (integral of the samples, read at both ends). Frame-to-frame differences of a jittering marker reference reach
+    1,000-35,000 deg/s on Camargo thighs although the gyroscope stays below about 570 deg/s; over the span the jitter
+    averages out while the motion stays (gyroscope-reference agreement 0.45-0.51 frame to frame, 0.95-0.97 over
+    0.25 s). A span containing an invalid reference frame (masked by the reference-only checks) or an invalid or
+    missing IMU sample gives NaN. So does a span containing a frame-to-frame step faster than the fastest measured
+    human segment rotation (e03_reference_jumps.MAX_SEGMENT_RATE_DPS, error 3's limit; the reference judged by
+    itself): averaged, a single jump would spoil every span that holds it (known-answer test: a held pose ending in a
+    jump moved the fit by about 100 deg). Returns (times, gyroscope (N, 3), reference (N, 3))."""
+    imu, ref = segment.imu, segment.reference
+    k = max(int(round(span_s * ref.rate_hz)), 1)
+    r = ref.orientation
+    if len(r) <= k:
+        return np.zeros(0), np.zeros((0, 3)), np.zeros((0, 3))
+    if convention == 'world_to_segment':
+        w = -(r[k:] * r[:-k].inv()).as_rotvec() * ref.rate_hz / k
+    else:
+        w = (r[:-k].inv() * r[k:]).as_rotvec() * ref.rate_hz / k
+    t = ref.start_s + (np.arange(len(r) - k) + k / 2) / ref.rate_hz
+    bad_ref = np.concatenate([[0], np.cumsum(~ref.valid)])
+    w[(bad_ref[k + 1:] - bad_ref[:-k - 1]) > 0] = np.nan  # frames i..i+k all valid
+    step_dps = np.degrees((r[:-1].inv() * r[1:]).magnitude()) * ref.rate_hz
+    fast = np.concatenate([[0], np.cumsum(step_dps > MAX_SEGMENT_RATE_DPS)])
+    w[(fast[k:] - fast[:-k]) > 0] = np.nan  # no step i..i+k faster than any human segment turns
+    half = k / ref.rate_hz / 2
+    ok = imu.valid & np.isfinite(imu.gyr).all(1)
+    dt = 1.0 / imu.rate_hz
+    edges = np.concatenate([imu.times - dt / 2, [imu.times[-1] + dt / 2]])
+    integral = np.vstack([np.zeros((1, 3)), np.cumsum(np.where(ok[:, None], imu.gyr, 0.0) * dt, axis=0)])
+    bad_imu = np.concatenate([[0.0], np.cumsum(~ok)])
+    lo, hi = t - half, t + half
+    g = (interpolate(hi, edges, integral) - interpolate(lo, edges, integral)) / (2 * half)
+    holes = interpolate(hi, edges, bad_imu) - interpolate(lo, edges, bad_imu)
+    g[~(holes < 1e-9)] = np.nan
+    return t, g, w
+
+
 def rate_pairs(segment: Segment, convention: str, min_rate_dps: float = 17.0, window_s: float | None = None,
-               window_start_s: float | None = None, with_times: bool = False):
+               window_start_s: float | None = None, with_times: bool = False, span_s: float = 0.0):
     """Gyroscope and reference angular rate at the same instants, for the moving, valid and plausible frames.
 
     window_s: only window_s seconds from window_start_s (default: the start of the time both streams cover; None:
-    all of it). with_times: also return the samples' times (s)."""
+    all of it). with_times: also return the samples' times (s). span_s > 0: both rates averaged over that span
+    (averaged_rate_pairs), and only frames the reference-only checks marked invalid are left out; span_s 0: frame to
+    frame, leaving out frames whose speed differs from the gyroscope's by more than 300 deg/s, widened by 0.5 s
+    (e03_reference_jumps.implausible_reference_frames)."""
     imu, ref = segment.imu, segment.reference
+    if span_s > 0:
+        t, g, w = averaged_rate_pairs(segment, convention, span_s)
+        use = np.isfinite(g).all(1) & np.isfinite(w).all(1) & (np.linalg.norm(w, axis=1) > np.radians(min_rate_dps))
+        if window_s is not None:
+            start = common_start(segment) if window_start_s is None else window_start_s
+            use &= (t >= start) & (t < start + window_s)
+        return (g[use], w[use], t[use]) if with_times else (g[use], w[use])
     excluded = implausible_reference_frames(segment, margin_s=0.5)
     t, w = reference_angular_rate(ref.orientation, ref.rate_hz, convention)
     t = t + ref.start_s
@@ -72,7 +123,7 @@ def common_start(segment: Segment) -> float:
 
 def fit_gyroscope_to_reference(segments: Segment | list[Segment], min_rate_dps: float = 17.0,
                                window_s: float | None = None, min_samples: int = 20,
-                               window_start_s: float | None = None) -> GyroscopeFit | None:
+                               window_start_s: float | None = None, span_s: float = 0.0) -> GyroscopeFit | None:
     """Fit one constant rotation from the gyroscope to the reference angular rate, pooled over all given segments
     (the same body segment in several trials of one session).
 
@@ -83,7 +134,7 @@ def fit_gyroscope_to_reference(segments: Segment | list[Segment], min_rate_dps: 
     conventions = ('segment_to_world', 'world_to_segment') if known == 'unknown' else (known,)
     best = None
     for convention in conventions:
-        pairs = [rate_pairs(s, convention, min_rate_dps, window_s, window_start_s) for s in segments]
+        pairs = [rate_pairs(s, convention, min_rate_dps, window_s, window_start_s, span_s=span_s) for s in segments]
         g = np.vstack([p[0] for p in pairs])
         w = np.vstack([p[1] for p in pairs])
         if len(g) < max(min_samples, 3):
@@ -136,7 +187,6 @@ def check_for_mounting_misalignment(recordings: Recording | list[Recording], thr
 # axis. The pool's uncertainty holds the noise of its fits plus the real scatter between trials, so where a
 # participant's trials truly differ (a slipped sensor), a precise own fit keeps its weight.
 CONVERGENCE_S = 10.0  # = tuning_split.CONVERGENCE_S
-MIN_RATE_DPS = 17.0  # reference rate a sample needs to enter a fit (the default of every fit below)
 MIN_FIT = 3  # fewest samples a rotation can be fitted from at all
 
 # Uncertainty of a fit. Noise correlation: neighbouring samples drift together (skin wobble, timing, smoothing), so
@@ -149,7 +199,21 @@ MIN_FIT = 3  # fewest samples a rotation can be fitted from at all
 # 3 F(0.95; 3, m) / chi2(0.95; 3), m = moving time / NOISE_LAG_S (synthetic stretches of 0.4-3 s: 12-88 % coverage
 # without it, 99-100 % with it).
 NOISE_LAG_S = 0.25
-REST_DPS = 5.6
+# Rates of the window fits are averaged over RATE_SPAN_S instead of taken frame to frame, and no frame is left out for
+# disagreeing with the gyroscope: the span is the noise memory above, so the uncertainty, which counts one independent
+# observation per NOISE_LAG_S, credits no information the averaging removed (rate_pairs, span_s).
+RATE_SPAN_S = NOISE_LAG_S
+REST_DPS = 7.5  # = e17_gyroscope_offset.MAX_REF_DPS
+# Rate limit of the window fit: the rest limit of error 17 (e17_gyroscope_offset.MAX_REF_DPS, 1.5 x the worst static
+# recording), i.e. every sample in which the segment is not at rest. With rates averaged over RATE_SPAN_S, a higher
+# limit (17 deg/s) left slowly moving segments without any sample (REEM-C pelvis: 5-13 deg/s). Jitter of a still
+# segment can pass the limit; its fit then knows nothing (uncertainty 180 deg in every direction) and is not applied
+# (knows_nothing). Error 17's reference fallback (fit_gyroscope_to_reference with its default) keeps 17 deg/s; errors
+# 16, 19 and 20 use their own rate pairs.
+MIN_RATE_DPS = REST_DPS
+# The own-window search (window_fits) counts a segment as moving above twice the rest limit (15 deg/s), so that enough
+# motion starts it and the marker jitter of a still segment does not.
+OWN_WINDOW_DPS = 2 * REST_DPS
 UNCERTAINTY_LEVEL = 0.95
 
 
@@ -183,6 +247,14 @@ def fit_information(m: np.ndarray, g: np.ndarray, w: np.ndarray, t: np.ndarray, 
     return (info + info.T) / 2
 
 
+def knows_nothing(information: np.ndarray) -> bool:
+    """True if the fit is unknown in every direction: even its best-determined direction has a 95 % uncertainty of
+    180 deg. Such a fit is not applied; one known in at least one direction is."""
+    from scipy.stats import chi2
+    high = float(np.linalg.eigvalsh(np.asarray(information, float))[-1])
+    return high <= 0 or np.degrees(np.sqrt(chi2.ppf(UNCERTAINTY_LEVEL, 3) / high)) >= 180.0
+
+
 def uncertainty_deg(information: np.ndarray) -> float:
     """Largest angle (degrees) by which the true rotation may differ at UNCERTAINTY_LEVEL: the longest half-axis of
     the confidence region, capped at 180."""
@@ -194,16 +266,17 @@ def uncertainty_deg(information: np.ndarray) -> float:
 
 
 def window_fit(segment: Segment, start_s: float | None, window_s: float = CONVERGENCE_S, threshold_deg: float = 2.0,
-               min_rate_dps: float = 17.0) -> dict:
+               min_rate_dps: float = MIN_RATE_DPS) -> dict:
     """One segment's rotation fitted on `window_s` seconds from `start_s` (an entry of
     check_for_mounting_in_convergence's per_segment); no fit (detected None) with fewer than MIN_FIT moving samples or
     without a start."""
     fit = None if start_s is None else fit_gyroscope_to_reference(segment, min_rate_dps, window_s=window_s,
-                                                                     min_samples=MIN_FIT, window_start_s=start_s)
+                                                                     min_samples=MIN_FIT, window_start_s=start_s,
+                                                                     span_s=RATE_SPAN_S)
     if fit is None:
         return entry(None, float('nan'), 'deg', fit=None, moving_samples=0, information=np.zeros((3, 3)),
                      uncertainty_deg=180.0)
-    g, w, t = rate_pairs(segment, fit.convention, min_rate_dps, window_s, start_s, with_times=True)
+    g, w, t = rate_pairs(segment, fit.convention, min_rate_dps, window_s, start_s, with_times=True, span_s=RATE_SPAN_S)
     info = fit_information(fit.sensor_to_segment, g, w, t, segment.reference.rate_hz)
     angle = float(np.degrees(Rotation.from_matrix(fit.sensor_to_segment).magnitude()))
     return entry(angle > threshold_deg, angle, 'deg', fit.residual_dps, fit=fit, moving_samples=fit.samples,
@@ -211,7 +284,7 @@ def window_fit(segment: Segment, start_s: float | None, window_s: float = CONVER
 
 
 def check_for_mounting_in_convergence(recording: Recording, window_s: float = CONVERGENCE_S,
-                                      threshold_deg: float = 2.0, min_rate_dps: float = 17.0,
+                                      threshold_deg: float = 2.0, min_rate_dps: float = MIN_RATE_DPS,
                                       onset_s: float | None = None) -> CheckResult:
     """One rotation per segment from this trial's convergence window: `window_s` seconds from the motion onset
     (`onset_s`, computed from the reference when None; comment above). Per segment: the angle, the rms misfit, the
@@ -364,8 +437,14 @@ def remove_mounting_misalignment(recording: Recording, result: CheckResult | Non
 # the leave-one-out pool of the participant's other trials of that segment (the pool's uncertainty includes the
 # scatter between trials). A segment without an own fit takes the pool of every fitted trial; one with neither is not
 # corrected. Own-window rule: a segment without a pool that moves in at most half of the trial's window is fitted on
-# its own first CONVERGENCE_S of motion (moving meaning faster than the fit's MIN_RATE_DPS, so the fit has samples);
-# its joints are scored from the end of that window (metadata[SEGMENT_WINDOWS_KEY]).
+# its own first CONVERGENCE_S of motion (moving meaning faster than OWN_WINDOW_DPS, twice the rest limit); its joints
+# are scored from the end of that window (metadata[SEGMENT_WINDOWS_KEY]). The same switch is made for a segment
+# without a pool whose trial-window fit is useless (no fit, or an uncertainty of 180 deg: a segment moving slowly,
+# above the standing limit but too little for the fit), but only where its own window gives a usable fit (a masked
+# sensor gains nothing, so neither its fit nor its scoring start moves). A fit, own or pooled, that knows nothing in
+# any direction (knows_nothing) is not applied: an own fit of that kind counts as no fit, and a segment left with
+# nothing else stays uncorrected (logged in no_information and not_corrected). A fit known in at least one direction
+# (a segment turning about one axis) is applied.
 
 INFORMATION_COLUMNS = ('j_xx', 'j_xy', 'j_xz', 'j_yy', 'j_yz', 'j_zz')  # upper triangle of a fit's information
 
@@ -393,9 +472,15 @@ def _quaternion(r: dict, prefix: str) -> np.ndarray | None:
     return q if np.isfinite(q).all() else None
 
 
+def _useless(p: dict) -> bool:
+    """A window fit that says nothing: no fit, or an uncertainty of 180 deg."""
+    return p.get('fit') is None or p.get('uncertainty_deg', 180.0) >= 180.0
+
+
 def window_fits(rec: Recording) -> list[dict]:
     """Per segment: the fit on the trial's convergence window and, for a segment that moves in at most half of that
-    window, the alternative fit on its own convergence window (used only where the segment has no pool)."""
+    window or whose fit there is useless, the alternative fit on its own convergence window (used only where the
+    segment has no pool; plan_rotation)."""
     from ..motion_onset import MAJORITY, convergence_window, segment_convergence_window, segment_motion_share
     window = convergence_window(rec)
     onset = window['onset_s']
@@ -407,8 +492,8 @@ def window_fits(rec: Recording) -> list[dict]:
         if onset is not None:
             share = segment_motion_share(rec, seg, onset)
             row['share_in_trial_window'] = share
-            if share <= MAJORITY:
-                w = segment_convergence_window(rec, seg, max_ref_dps=MIN_RATE_DPS)
+            if share <= MAJORITY or _useless(p):
+                w = segment_convergence_window(rec, seg, max_ref_dps=OWN_WINDOW_DPS)
                 if w['onset_s'] is not None and w['onset_s'] != onset:
                     row.update(alt_start_s=w['onset_s'], alt_share=w['share'], alt_continuous=w['continuous'],
                                **_fit_columns('alt_', window_fit(rec[seg], w['onset_s'])))
@@ -426,7 +511,8 @@ def pools_from_rows(rows: list[dict]) -> dict:
 
 def plan_rotation(r: dict, pools: dict) -> dict:
     """The rotation applied to one trial-segment (comment above), from its window_fits row and the pools: applied
-    quaternion (a_qx..a_qw, NaN where not corrected), own share, uncertainties, pool size and scatter, own window."""
+    quaternion (a_qx..a_qw, NaN where not corrected), own share, uncertainties, pool size and scatter, own window and
+    why it was taken, and whether a fit was dropped for knowing nothing (no_information)."""
     from ..motion_onset import MAJORITY
     group = pools.get((str(r['participant']), r['segment']))
     trial = str(r['trial'])
@@ -435,17 +521,30 @@ def plan_rotation(r: dict, pools: dict) -> dict:
     has_pool = bool(group) and (trial in group['per_trial'] or own_q is None)
     onset, share = float(r.get('onset_s') if r.get('onset_s') is not None else np.nan), float(
         r.get('share_in_trial_window', np.nan))
-    own_window = (not has_pool and np.isfinite(onset) and np.isfinite(share) and share <= MAJORITY
-                  and np.isfinite(float(r.get('alt_start_s', np.nan))))
+    useless = own_q is None or own_unc >= 180.0
+    alt_usable = _quaternion(r, 'alt_') is not None and float(r.get('alt_uncertainty_deg', 180.0)) < 180.0
+    reason = ''
+    if (not has_pool and np.isfinite(onset) and np.isfinite(share) and np.isfinite(float(r.get('alt_start_s', np.nan)))):
+        if share <= MAJORITY:
+            reason = 'little motion'
+        elif useless and alt_usable:
+            reason = 'useless trial-window fit'
+    own_window = bool(reason)
     if own_window:
         own_q, own_info = _quaternion(r, 'alt_'), _information(r, 'alt_')
         own_unc = float(r.get('alt_uncertainty_deg', 180.0))
+    no_information = False
+    if own_q is not None and knows_nothing(own_info):  # knows nothing in any direction: counts as no fit
+        own_q, own_info, no_information = None, np.zeros((3, 3)), True
     own = Rotation.from_quat(own_q).as_matrix() if own_q is not None else None
     pool, pool_info = None, None
     if group and not own_window:  # own fit: the other trials; none: every fitted trial of the group
         pool, pool_info = group['per_trial'].get(trial, (None, None)) if own is not None else group['all']
     m, info, own_share = combine_with_pool(own, own_info, pool, pool_info)
-    out = dict(own_window=bool(own_window), corrected=m is not None,
+    if m is not None and knows_nothing(info):  # a pool of fits that know nothing either
+        m, no_information = None, True
+    out = dict(own_window=own_window, own_window_reason=reason, corrected=m is not None,
+               no_information=no_information,
                own_window_start_s=float(r['alt_start_s']) if own_window else np.nan,
                own_window_end_s=float(r['alt_start_s']) + CONVERGENCE_S if own_window else np.nan,
                own_share=own_share if own_share is not None else np.nan,
@@ -460,16 +559,27 @@ def plan_rotation(r: dict, pools: dict) -> dict:
 
 def apply_rotations(rec: Recording, rows: list[dict]) -> Recording:
     """Copy with each segment's gyroscope and accelerometer rotated by its applied rotation (rows of plan_rotation);
-    segments fitted on their own window are recorded in metadata[SEGMENT_WINDOWS_KEY] {segment: (start, end)}."""
+    segments fitted on their own window are recorded in metadata[SEGMENT_WINDOWS_KEY] {segment: (start, end)}. The
+    log gives per segment the own fit's uncertainty, its share of the weight, the pool's size and scatter, the
+    segments fitted on their own window (and why), the fits dropped for knowing nothing and the segments left
+    uncorrected."""
     from ..motion_onset import SEGMENT_WINDOWS_KEY
     new = rec.copy()
-    rotated, weights, uncorrected, own_window = {}, {}, [], {}
+    rotated, weights, uncorrected, own_window, no_information = {}, {}, [], {}, []
     onset = None
     for r in rows:
         seg = r['segment']
         if seg not in new.segments:
             continue
         onset = r.get('onset_s') if onset is None else onset
+        if str(r.get('no_information')) == 'True':
+            no_information.append(seg)
+        if str(r.get('own_window')) == 'True':
+            own_window[seg] = dict(start_s=float(r['own_window_start_s']), end_s=float(r['own_window_end_s']),
+                                   share_in_trial_window=round(float(r.get('share_in_trial_window', np.nan)), 3),
+                                   share=round(float(r.get('alt_share', np.nan)), 3),
+                                   continuous=str(r.get('alt_continuous')) == 'True',
+                                   reason=str(r.get('own_window_reason', '')))
         q = _quaternion(r, 'a_')
         if q is None:
             uncorrected.append(seg)
@@ -483,12 +593,9 @@ def apply_rotations(rec: Recording, rows: list[dict]) -> Recording:
                             applied_uncertainty_deg=round(float(r.get('applied_uncertainty_deg', np.nan)), 2),
                             pool_trials=int(float(r.get('pool_trials', 0) or 0)),
                             pool_scatter_deg=float(r.get('pool_scatter_deg', np.nan)))
-        if str(r.get('own_window')) == 'True':
-            own_window[seg] = dict(start_s=float(r['own_window_start_s']), end_s=float(r['own_window_end_s']),
-                                   share_in_trial_window=round(float(r.get('share_in_trial_window', np.nan)), 3))
     new.log_correction(ERROR, f'Rotated the IMU data of {len(rotated)} segments into the reference segment frames.',
-                       angle_deg=rotated, weights=weights, not_corrected=sorted(uncorrected), motion_onset_s=onset,
-                       own_window=own_window)
+                       angle_deg=rotated, weights=weights, not_corrected=sorted(uncorrected),
+                       no_information=sorted(no_information), motion_onset_s=onset, own_window=own_window)
     if own_window:
         new.metadata[SEGMENT_WINDOWS_KEY] = {k: (v['start_s'], v['end_s']) for k, v in own_window.items()}
     return new

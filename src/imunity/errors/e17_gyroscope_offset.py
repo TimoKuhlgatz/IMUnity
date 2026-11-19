@@ -18,8 +18,12 @@ How we catch it:
      valid throughout. Net rotation, not the frame-to-frame speed: marker jitter differentiated frame by frame reads
      2-9 °/s on still references, while a real constant rotation shows fully in the net angle.
    MAX_GYR_STD_DPS = 4.3 °/s: the largest gyroscope spread in the static recordings the datasets ship (2.87 °/s, a
-   person standing in an N-pose) times 1.5. MAX_REF_DPS = 5.6 °/s, derived the same way from the net reference
-   rotation (3.73 °/s, body sway). MAX_ACC_STD is provisional.
+   person standing in an N-pose) times 1.5. MAX_REF_DPS = 7.5 °/s, derived the same way from the net reference
+   rotation in the static recordings on people (largest: 4.98 °/s, Hankyong N-pose, head cluster, body sway; per
+   recording and sensor the median window; measured on the files as deposited). On a table the net rotation is
+   0.02-0.03 °/s. A constant rotation slower than this can still pass for rest. MAX_ACC_STD = 0.2 m/s², derived the
+   same way from the spread of the accelerometer magnitude in the static recordings on people (largest: 0.132 m/s²,
+   Geneva).
 2. Per trial. The offset of a trial is the mean gyroscope reading over its rest samples if the trial has at least
    MIN_REST_S of rest; otherwise the rest samples of all given trials of the session are pooled (fallback). Without
    enough rest in the session either, the offset can only come from a fit against the reference rate
@@ -46,9 +50,9 @@ ERROR = 'gyroscope offset'
 
 # Rest limits and threshold (module description).
 WINDOW_S = 0.5  # length of a rest window; windows overlap by half
-MAX_ACC_STD = 0.1  # m/s^2, spread of the accelerometer magnitude within a rest window (draft value)
+MAX_ACC_STD = 0.2  # m/s^2, spread of the accelerometer magnitude within a rest window: 1.5 x worst static recording
 MAX_GYR_STD_DPS = 4.3  # °/s, spread of every gyroscope axis within a rest window: 1.5 x worst static recording
-MAX_REF_DPS = 5.6  # °/s, net reference rotation over a rest window: 1.5 x worst static recording
+MAX_REF_DPS = 7.5  # °/s, net reference rotation over a rest window: 1.5 x worst static recording on people
 MIN_REST_S = 1.0  # seconds of rest a trial needs for its own estimate (draft value)
 THRESHOLD_DPS = 0.01  # °/s, offset size counted as an error: above the worst specified bias stability
 

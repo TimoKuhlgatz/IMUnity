@@ -22,7 +22,9 @@ def test_rotation_is_recovered_from_the_first_10_s_only():
         assert p['uncertainty_deg'] < 2
         assert p['estimate'] == pytest.approx(np.degrees(MOUNTING.magnitude()), abs=0.5), name
         fitted = Rotation.from_matrix(p['fit'].sensor_to_segment)
-        assert np.degrees((fitted * MOUNTING).magnitude()) < 0.5  # sensor_to_segment undoes segment-to-sensor
+        # within 2 deg: rates averaged over 0.25 s are off by up to 1.4 deg on this motion
+        # (test_e18_mounting_averaged_rates), always inside the stated uncertainty
+        assert np.degrees((fitted * MOUNTING).magnitude()) < min(2.0, p['uncertainty_deg'])  # undoes segment-to-sensor
 
 
 def test_corrected_copy_has_no_mounting_left():
@@ -79,8 +81,9 @@ def test_little_movement_is_fitted_with_a_large_uncertainty():
         q[:k0] = q[k0]
         q[k0 + 10:] = q[k0 + 10]  # ten frames of motion at 5 s, then still to the end
         ref.orientation = Rotation.from_quat(q)
+        seg.imu.gyr[(seg.imu.times < 5.0) | (seg.imu.times >= 5.1)] = 0.0  # the gyroscope still with the reference
     result = E.check_for_mounting_in_convergence(rec)
-    for p in result.per_segment.values():
-        assert p['fit'] is not None and 3 <= p['moving_samples'] < 20 and p['uncertainty_deg'] > 20
+    for p in result.per_segment.values():  # averaged over 0.25 s, the ten frames spread over about 25 samples
+        assert p['fit'] is not None and 3 <= p['moving_samples'] < 40 and p['uncertainty_deg'] > 20
     fixed = E.remove_mounting_misalignment(rec, result)
     assert not np.array_equal(fixed.segments['upper'].imu.gyr, rec.segments['upper'].imu.gyr)

@@ -2,9 +2,9 @@
 offset, so the length is not 9.81 m/s² in every pose. Corrected where it can be measured; a scale error is not fitted.
 
 How it is measured (the rest-pose rule). Rest is error 17's rest_mask (IMU quiet, the accelerometer's length varying
-by less than 0.1 m/s², and optical reference still). Each rest stretch is cut into 0.5 s pieces; the mean
-accelerometer of a piece is one rest reading. Readings closer than POSE_APART_DEG in direction are one pose (2.8°: the
-most the segment can turn within one reading under the reference's rest limit of 5.6 °/s). With at least MIN_POSES
+by less than 0.2 m/s², and optical reference still). Each rest stretch is cut into 0.5 s pieces; the mean
+accelerometer of a piece is one rest reading. Readings closer than POSE_APART_DEG in direction are one pose (3.75°:
+the most the segment can turn within one reading under the reference's rest limit of 7.5 °/s). With at least MIN_POSES
 poses whose directions do not lie in one plane (smallest eigenvalue of their mean outer product at least MIN_SPREAD),
 the bias b is the centre of the sphere of radius g through the readings (|a - b| = g, least squares). It is read if
 the fit's rms residual is at most MAX_RESIDUAL and |b| at least MIN_BIAS; otherwise it is not corrected and the
@@ -30,11 +30,11 @@ import numpy as np
 
 from ..recording import Recording, Segment
 from .e22_gravity_removed import GRAVITY_MPS2, MAX_REST_LENGTH_G, current_turn
-from .e17_gyroscope_offset import WINDOW_S, rest_mask
+from .e17_gyroscope_offset import MAX_REF_DPS, WINDOW_S, rest_mask
 
 ERROR = 'accelerometer bias'
 G = 9.80665
-POSE_APART_DEG = 2.8
+POSE_APART_DEG = MAX_REF_DPS * WINDOW_S  # 3.75 deg: the most a segment turns within one reading at the rest limit
 MIN_POSES, MIN_SPREAD, MAX_RESIDUAL, MIN_BIAS = 8, 0.05, 0.05, 0.2  # gates of the rest-pose rule (m/s² for the last two)
 READ = 'bias read'
 

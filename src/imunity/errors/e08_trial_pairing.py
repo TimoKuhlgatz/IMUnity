@@ -19,7 +19,8 @@ is wrongly paired if the assignment gives it another optical recording than the 
         method) with the same gain and floor, since there is no order to keep.
 
 How we correct it: pair each trial with its assigned optical recording; unpaired trials have no reference. Only
-Trento is corrected: it is read with its repaired pairing (reader 'bonfiglio' instead of 'bonfiglio_deposited').
+Trento is corrected: it is read with its repaired pairing (reader 'bonfiglio' instead of 'bonfiglio_deposited'; read
+from the authors' processed products, 'bonfiglio_final' instead of 'bonfiglio_final_deposited').
 The other wrongly paired trials (Darmstadt, ULTRA-MoCap) are reported only; Geneva's are a consequence of its
 mis-assembled streams (error 10) and vanish on the streams rebuilt from its raw logs, which its pairing is checked on
 in the order of correction.
@@ -207,22 +208,26 @@ def prevalence(rows: pd.DataFrame) -> dict:
     return count_trials(rows, 'trials')
 
 
+REPAIRED_READER = {'bonfiglio_deposited': 'bonfiglio', 'bonfiglio_final_deposited': 'bonfiglio_final'}
+
+
 def correct(loader, rows: pd.DataFrame):
-    """Trento read with its repaired pairing: the same corrections on top of the reader 'bonfiglio'. Every other
-    reader is returned unchanged (in the order of correction, correction.base_reader already switches the reader
-    from this error's check on)."""
-    if reader_of(loader) != 'bonfiglio_deposited':
+    """Trento read with its repaired pairing: the same corrections on top of the reader 'bonfiglio' (or
+    'bonfiglio_final'). Every other reader is returned unchanged (in the order of correction, correction.base_reader
+    already switches the reader from this error's check on)."""
+    repaired = REPAIRED_READER.get(reader_of(loader))
+    if repaired is None:
         return loader
     from ..datasets import load_dataset
-    return rebase(loader, load_dataset('bonfiglio'))
+    return rebase(loader, load_dataset(repaired))
 
 
 def loader_for(dataset: str, data: str):
     """Trento as deposited is read with the deposit's own pairing (the k-th IMU trial with the k-th optical file);
     None for everything else (the usual source loader)."""
-    if dataset == 'bonfiglio' and data == 'deposited':
+    if dataset in ('bonfiglio', 'bonfiglio_final') and data == 'deposited':
         from ..datasets import load_dataset
-        return load_dataset('bonfiglio_deposited')
+        return load_dataset(f'{dataset}_deposited')
     return None
 
 

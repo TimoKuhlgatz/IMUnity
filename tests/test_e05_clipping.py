@@ -185,7 +185,8 @@ def test_a_channel_still_at_gravity_while_the_imu_turns_about_it_is_not_railed()
     clipped, railed, _ = cut_off_samples(np.hstack([gyr, acc]), 100.0, limits, None, minimum_limits(
         RAIL_LIMIT))
     assert not (clipped | railed).any()
-    _, railed, _ = cut_off_samples(np.hstack([gyr, acc]), 100.0, limits, None, limits)  # at 1 g it would be railed
+    one_g = minimum_limits({'gyr': np.deg2rad(125.0), 'acc': 9.81})
+    _, railed, _ = cut_off_samples(np.hstack([gyr, acc]), 100.0, one_g, None, one_g)  # at 1 g it would be railed
     assert railed.sum() > 0.9 * len(t)
 
 

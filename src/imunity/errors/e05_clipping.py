@@ -24,9 +24,10 @@ Per channel and side (largest positive, largest negative values):
     4b. Rest: a plateau counts only while another channel of the same IMU varies during it, its standard deviation
        above PLATEAU_SIGMA times its noise (as in the dead-channel check). At rest every channel is flat, and a
        one-sided signal resting at its minimum looks like a limit; a range limit is reached in motion.
-    4c. Smallest possible range: a limit lies at least MIN_LIMIT from zero, 1 g for an
-       accelerometer (a smaller range could not measure gravity) and 125 deg/s for a gyroscope (the smallest range
-       of common sensors). A cut-off plateau closer to zero is a natural top the cubic overshoots.
+    4c. Smallest possible range: a limit lies at least MIN_LIMIT from zero, 1.9 g for an accelerometer (2 g, the
+       smallest range of common accelerometers, as a 1 g range would clip whenever the sensor moves, less 5 % for
+       the sensitivity tolerance of consumer chips) and 125 deg/s for a gyroscope (the smallest range of common
+       sensors). A cut-off plateau closer to zero is a natural top the cubic overshoots.
     4d. Recurrence: a range limit belongs to the sensor and is reached again. A cut-off plateau
        counts only when another cut-off plateau of the same channel and side, in the same trial or in another trial
        of the same participant (other_levels), lies within RECUR_SIGMA (6) noise of its level; otherwise 'single',
@@ -42,8 +43,9 @@ Per channel and side (largest positive, largest negative values):
        g): a railed channel has no flanks for step 3. A channel whose samples lie
        within PLATEAU_SIGMA noise of its median for more than WHOLE_TRIAL (half) of the trial, while another channel
        of the IMU varies during those samples (as 4b), is railed when the median lies at least RAIL_LIMIT from zero:
-       2 g for an accelerometer (an axis that holds still while the IMU moves can naturally only read gravity, at
-       most 1 g; with 1 g, upright axes in Trento, Geneva and REEM-C were flagged) and 125 deg/s
+       1.9 g for an accelerometer (ACC_FLOOR, as in step 4c; an axis that holds still while the IMU moves can
+       naturally only read gravity, at most 1 g; with 1 g, upright axes in Trento, Geneva and REEM-C were flagged) and
+       125 deg/s
        for a gyroscope. Its band samples are masked. The band is centred on the median, not the top value: a few
        samples above the rail would otherwise move the band off its bulk (2 of 56 Central Florida trials missed).
        Recurrence is not required: the dwell is itself the evidence.
@@ -72,11 +74,14 @@ RAILED_S = 1.0
 NOISE_WINDOW_S = 0.5
 NOISE_QUANTILE = 0.1
 GRAVITY = 9.81
-MIN_LIMIT = {'gyr': np.deg2rad(125.0), 'acc': GRAVITY}
+# Accelerometer floor 1.9 g: 2 g, the smallest range of common accelerometers (a 1 g range would clip whenever the
+# sensor moves), less 5 % for typical sensitivity tolerances of consumer chips; also the rail limit.
+ACC_FLOOR = 1.9 * GRAVITY
+MIN_LIMIT = {'gyr': np.deg2rad(125.0), 'acc': ACC_FLOOR}
 RECUR_SIGMA = 2 * PLATEAU_SIGMA
 WHOLE_TRIAL = 0.5
 EXCEED_FRACTION = 0.05
-RAIL_LIMIT = {'gyr': np.deg2rad(125.0), 'acc': 2 * GRAVITY}
+RAIL_LIMIT = {'gyr': np.deg2rad(125.0), 'acc': ACC_FLOOR}
 CANDIDATE = ('cut off', 'single')  # passed the shape, rest and range tests; recurrence decides between them
 
 
@@ -377,7 +382,7 @@ from functools import partial  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from ._report import CorrectedLoader, ErrorSpec, count_trials, make_handler  # noqa: E402
-from ._rows import by_participant, dumps, from_runs, loads, parallel_map, reader_of, runs, truthy  # noqa: E402
+from ._rows import by_participant, dumps, from_runs, loads, parallel_map, reader_of, runs, same_imu, truthy  # noqa: E402
 
 
 def plateaus_of(rec: Recording) -> dict:
@@ -456,7 +461,8 @@ def prevalence(rows: pd.DataFrame) -> dict:
 
 def _mask(rec: Recording, trial, *, stored) -> Recording:
     """Clipped samples marked invalid: from the stored runs ({trial: {segment: runs}}), or, where `stored` is None,
-    found again in this trial alone (another reader than the check's: no recurrence across trials)."""
+    found again in this trial alone (a reader with other IMU streams than the check's, Geneva rebuilt from
+    its raw logs: no recurrence across trials)."""
     if stored is not None and str(trial) not in stored:
         return rec
     new, marked = rec.copy(), {}
@@ -476,7 +482,7 @@ def _mask(rec: Recording, trial, *, stored) -> Recording:
 
 def correct(loader, rows: pd.DataFrame):
     """The clipped samples marked invalid (all channels of that IMU sample)."""
-    if len(rows) and 'reader' in rows and rows.reader.iloc[0] != reader_of(loader):
+    if len(rows) and 'reader' in rows and not same_imu(rows.reader.iloc[0], reader_of(loader)):
         return CorrectedLoader(loader, partial(_mask, stored=None), 'clipping')
     stored = {}
     for r in rows[rows.detected.map(truthy)].itertuples():

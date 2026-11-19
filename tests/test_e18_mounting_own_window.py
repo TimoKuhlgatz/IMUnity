@@ -58,3 +58,40 @@ def test_without_the_rule_the_still_segment_gets_no_rotation():
     from imunity.errors.e18_mounting import check_for_mounting_in_convergence
     res = check_for_mounting_in_convergence(late_segment())
     assert res.per_segment['lower']['fit'] is None and res.per_segment['upper']['fit'] is not None
+
+
+def slow_segment(factor=0.06, slow_s=30.0):
+    """'lower' moves at `factor` of its speed for `slow_s` (above the standing limit, below 17 deg/s), then at full
+    speed; 'upper' moves normally from the start."""
+    rec = make_recording(duration_s=80.0, mounting=MOUNTING, seed=3)
+    seg = rec.segments['lower']
+
+    def warp(t):
+        return np.where(t < slow_s, factor * t, factor * slow_s + (t - slow_s))
+
+    ti = seg.imu.times
+    ki = np.clip(np.rint(warp(ti) * seg.imu.rate_hz).astype(int), 0, len(ti) - 1)
+    seg.imu.gyr = seg.imu.gyr[ki] * np.where(ti < slow_s, factor, 1.0)[:, None]
+    seg.imu.acc = seg.imu.acc[ki].copy()
+    tr = seg.reference.times
+    kr = np.clip(np.rint(warp(tr) * seg.reference.rate_hz).astype(int), 0, len(tr) - 1)
+    seg.reference.orientation = seg.reference.orientation[kr]
+    return rec
+
+
+def test_slow_segment_is_fitted_in_the_trial_window():
+    """A segment that moves in more than half of the trial window's steps, but slower than 17 deg/s (Hip-ROM-Y right
+    thigh in two participants): with the rest limit as the fit's rate limit the segment is fitted in the trial window
+    itself: no own window, and the known mounting is recovered within the stated uncertainty."""
+    from imunity.errors.e18_mounting import check_for_mounting_in_convergence
+    from imunity.motion_onset import MAJORITY, segment_motion_share
+    rec = slow_segment()
+    onset = motion_onset_s(rec)
+    assert segment_motion_share(rec, 'lower', onset) > MAJORITY
+    p = check_for_mounting_in_convergence(rec).per_segment['lower']
+    assert p['uncertainty_deg'] < 180.0
+    fixed = mount_trial(rec)
+    log = fixed.corrections[-1].parameters
+    assert 'lower' not in log['own_window'] and 'lower' not in log['not_corrected']
+    applied, _ = best_rotation(rec['lower'].imu.gyr[3500:], fixed['lower'].imu.gyr[3500:])
+    assert np.degrees((Rotation.from_matrix(applied) * MOUNTING).magnitude()) <= log['weights']['lower']['applied_uncertainty_deg']

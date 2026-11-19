@@ -72,7 +72,7 @@ def test_one_millimetre_floor():
     assert [(r['first'], r['frames'], r['marker']) for r in res['runs']] == [(600, 5, 3)]
 
 
-def test_handler_counts_runs_and_leaves_the_frames_as_deposited():
+def test_handler_counts_runs_and_leaves_skin_clusters_as_deposited():
     from memory_loader import MemoryLoader
     from imunity.errors import e02_misplaced_markers as H
 
@@ -88,4 +88,25 @@ def test_handler_counts_runs_and_leaves_the_frames_as_deposited():
     p = H.prevalence(rows)
     assert (p['trials_detected'], p['occurrences'], p['occurrence_unit']) == (1, 1, 'runs')
     assert rows.fence_mm_vs_session.notna().sum() == 3
-    assert H.correct(loader, rows) is loader  # report only
+    assert H.correct(loader, rows) is loader  # a reader without rigid clusters: report only
+
+
+def test_rigid_clusters_masked_skin_clusters_left():
+    """In the agreed order an injected misplacement is masked for a reader with rigid clusters and left as deposited
+    for one with skin clusters; runs checked on another reader's trials (a re-paired trial) are found again on the
+    trial itself."""
+    from memory_loader import MemoryLoader
+    from imunity.errors import e02_misplaced_markers as H
+
+    rec = make_recording(duration_s=10.0, seed=3)
+    m = cluster(rec)
+    m[400:408, 2] += [15.0, -10.0, 5.0]
+    loader = MemoryLoader({'t1': attach(rec, m)})
+    rows = H.check_dataset(loader, 'synthetic', 1)
+    for checked_on in ('is2b', 'bonfiglio_deposited'):
+        loader.name = 'is2b' if checked_on == 'is2b' else 'bonfiglio'
+        rigid = H.correct(loader, rows.assign(reader=checked_on)).load('t1').segments['upper'].reference
+        assert not rigid.valid[400:408].any() and rigid.valid[:400].all() and rigid.valid[408:].all()
+    loader.name = 'camargo'
+    skin = H.correct(loader, rows.assign(reader='camargo')).load('t1').segments['upper'].reference
+    assert skin.valid.all()

@@ -32,7 +32,7 @@ Per channel:
        wrap at the top, and without this rule the in-range samples between two wraps of a one-sided signal
        (gravity on an accelerometer axis) were taken as a wrapped stretch (wraps injected into Delaware compliant
        terrain: 3.2 million false samples).
-    6. Range: R = S0 / 2 at least MIN_LIMIT from zero (1 g, 125 deg/s, as for clipping).
+    6. Range: R = S0 / 2 at least MIN_LIMIT from zero (1.9 g, 125 deg/s, as for clipping).
     7. Undecided: an entry jump that passes steps 2, 4 (up to the trial end) and 5 but has no exit, because the trial
        ends or values go missing while wrapped; reported, not flagged.
 The span used for the correction is the median of the spans of all accepted jumps of the channel (the hardware fixes
@@ -253,7 +253,7 @@ from functools import partial  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from ._report import CorrectedLoader, ErrorSpec, count_trials, make_handler  # noqa: E402
-from ._rows import dumps, loads, parallel_map, reader_of, truthy  # noqa: E402
+from ._rows import dumps, loads, parallel_map, reader_of, same_imu, truthy  # noqa: E402
 
 
 def _check_trial(loader, trial) -> list[dict]:
@@ -312,7 +312,7 @@ def _unwrap(rec: Recording, trial, *, stored) -> Recording:
 
 def correct(loader, rows: pd.DataFrame):
     """Every wrapped stretch unwrapped: stored value + or - the channel's span."""
-    if len(rows) and 'reader' in rows and rows.reader.iloc[0] != reader_of(loader):
+    if len(rows) and 'reader' in rows and not same_imu(rows.reader.iloc[0], reader_of(loader)):
         return CorrectedLoader(loader, partial(_unwrap, stored=None), ERROR)
     stored = {}
     for r in rows[rows.detected.map(truthy)].itertuples():

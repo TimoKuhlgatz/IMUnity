@@ -120,5 +120,5 @@ def test_effect_datasets_are_the_18_with_a_saved_tuning_and_test_half():
 
 
 def test_overview_order_lists_every_paper_dataset_once():
-    from imunity.datasets import PAPER_DATASETS
-    assert sorted(S.OVERVIEW_ORDER) == sorted(PAPER_DATASETS) and len(set(S.OVERVIEW_ORDER)) == 18
+    from imunity.datasets import ALL_DATASETS
+    assert sorted(S.OVERVIEW_ORDER) == sorted(ALL_DATASETS) and len(set(S.OVERVIEW_ORDER)) == 18

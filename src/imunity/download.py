@@ -1,7 +1,8 @@
 """Download the datasets from their original depositors into the layout the loaders read.
 
     from imunity.download import download
-    download()                              # every dataset of PAPER_DATASETS
+    download()                              # all 18 datasets (imunity.datasets.ALL_DATASETS)
+    download('paper')                       # the 15 the paper reports (imunity.datasets.PAPER_DATASETS)
     download(['is2b', 'dfjimu'])            # a subset
     download('compliant_terrain', all_participants=True)
 
@@ -14,6 +15,8 @@ figshare, Mendeley Data, Harvard Dataverse, TUdatalib, Yareta, Science Data Bank
 data repository, GitHub). By default the participant subset our results are based on: Delaware compliant terrain
 SUB01-SUB02 (`all_participants=True` adds SUB03-SUB20, about 54 GB, not used in the paper) and Camargo part 1
 (AB06-AB14; parts 2 and 3 are not read by the loader). DATASETS gives host, DOI, files and licence per dataset.
+Trento's `Data/` folder also holds the authors' processed products that the helper readers `bonfiglio_final` and
+`bonfiglio_final_deposited` read (B_dotComplete, 30. Results/qGS_Optotrack); nothing extra is fetched for them.
 
 Integrity: every file is checked against the checksum its host publishes (MD5 or SHA-256), or against the SHA-256
 of the copy our results were computed on where the host publishes none; the two GitHub sources are pinned to a
@@ -414,10 +417,17 @@ class ManualStep(RuntimeError):
 def download(datasets: str | list[str] = 'all', root: str | Path | None = None, *, all_participants: bool = False,
              keep_archives: bool = False, prepare: bool = True, processes: int = 10, force: bool = False
              ) -> dict[str, str]:
-    """Fetch datasets from their depositors into `<root>/<dataset>/`. Returns {dataset: 'done' | 'skipped (...)'
+    """Fetch datasets from their depositors into `<root>/<dataset>/`: 'all' (the 18 of ALL_DATASETS), 'paper' (the
+    15 of PAPER_DATASETS), one name or a list. Returns {dataset: 'done' | 'skipped (...)'
     | 'manual step: ...' | 'failed: ...'}; one dataset failing does not stop the others."""
     root = Path(root) if root is not None else DATA_ROOT
-    names = list(DATASETS) if datasets == 'all' else [datasets] if isinstance(datasets, str) else list(datasets)
+    if datasets == 'all':
+        names = list(DATASETS)
+    elif datasets == 'paper':
+        from .datasets import PAPER_DATASETS
+        names = list(PAPER_DATASETS)
+    else:
+        names = [datasets] if isinstance(datasets, str) else list(datasets)
     unknown = set(names) - set(DATASETS)
     if unknown:
         raise KeyError(f'unknown datasets {sorted(unknown)}; available: {", ".join(DATASETS)}')
@@ -452,7 +462,9 @@ def download(datasets: str | list[str] = 'all', root: str | Path | None = None, 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description='Download the datasets from their original depositors.')
-    parser.add_argument('datasets', nargs='*', default=['all'], help=f'any of: {", ".join(DATASETS)} (default all)')
+    parser.add_argument('datasets', nargs='*', default=['all'],
+                        help=f'any of: {", ".join(DATASETS)}; "all" (default, all 18) or "paper" (the 15 the paper '
+                             'reports)')
     parser.add_argument('--root', type=Path, default=None, help=f'target folder (default {DATA_ROOT})')
     parser.add_argument('--all-participants', action='store_true',
                         help='Delaware compliant terrain: all 20 participants, not only the 2 the paper used')
@@ -461,7 +473,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('--processes', type=int, default=10)
     parser.add_argument('--force', action='store_true', help='fetch again even if marked complete')
     a = parser.parse_args(argv)
-    status = download('all' if a.datasets == ['all'] else a.datasets, a.root, all_participants=a.all_participants,
+    status = download(a.datasets[0] if a.datasets in (['all'], ['paper']) else a.datasets, a.root, all_participants=a.all_participants,
                       keep_archives=a.keep_archives, prepare=not a.no_prepare, processes=a.processes, force=a.force)
     for name, s in status.items():
         print(f'{name:18s} {s}')

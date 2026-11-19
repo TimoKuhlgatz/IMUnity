@@ -6,8 +6,8 @@ starts at rest would otherwise spend its convergence time standing still, leavin
 
 Onset: the start of the first window in which the trial exceeds the standing limit, i.e. the rest test of the
 gyroscope offset turned around: a window of WINDOW_S (0.5 s, overlapping by half) in which the reference of any
-segment turns by a net rotation faster than MAX_REF_DPS (5.6 °/s = 1.5 x the worst static recording, 3.73 °/s,
-Trento N-pose). The net rotation over half a second is used, not the frame-to-frame rate, so marker jitter does not
+segment turns by a net rotation faster than MAX_REF_DPS (7.5 °/s = 1.5 x the worst static recording on people,
+4.98 °/s, Hankyong N-pose). The net rotation over half a second is used, not the frame-to-frame rate, so marker jitter does not
 start it. Only the reference is read: the IMU may still carry errors that are corrected later. One onset per trial
 (all joints are scored from the same instant). A trial without any such window is static.
 
@@ -22,8 +22,8 @@ convergence_window() reports which.
 A segment that barely moves in the trial's window: where a participant has no other trial of that segment to pool
 its mounting with (errors/e18_mounting.py), a segment moving in at most MAJORITY of the window's WINDOW_S steps
 (segment_motion_share) gets its mounting fitted on its own convergence window instead (segment_convergence_window:
-the same rule, read on that segment alone, with moving meaning faster than the fit's 17 °/s instead of the standing
-limit, since the fit can use only such samples), and every joint with that segment is scored only from the end of
+the same rule, read on that segment alone, with moving meaning faster than OWN_WINDOW_DPS of errors/e18_mounting.py,
+twice the standing limit, so that enough motion starts it and the marker jitter of a still segment does not), and every joint with that segment is scored only from the end of
 that window (effect.py; Hip-ROM-Y: the right leg moves later than the left, so the first 10 s of the trial held no
 right-shank motion).
 

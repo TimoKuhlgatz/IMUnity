@@ -109,3 +109,8 @@ def test_handler_counts_and_repairs_a_swap_in_a_dataset():
     assert np.degrees((fixed.orientation.inv() * truth).magnitude()).max() < 0.5
     assert np.allclose(fixed.markers['m1'], clusters[5][:, 1])
     assert H.correct(loader, rows).load('t0').corrections == []
+    # a reader serving the same optical reference (Geneva with its IMU rebuilt from the raw logs) is repaired from
+    # the swaps found on the dataset's own reader
+    loader.name = 'grouvel_raw'
+    fixed = H.correct(loader, rows.assign(reader='grouvel')).load('t5').segments['upper'].reference
+    assert np.degrees((fixed.orientation.inv() * truth).magnitude()).max() < 0.5

@@ -42,7 +42,7 @@ def _integrate(start: Rotation, rate: np.ndarray, dt: float) -> np.ndarray:
 def make_recording(duration_s: float = 30.0, imu_rate_hz: float = 100.0, reference_rate_hz: float = 100.0,
                    segment_names=('upper', 'lower'), offset_s: float = 0.0, drift_ppm: float = 0.0,
                    mounting: Rotation | None = None, seed: int = 0, linear_acc_mps2: float = 0.0,
-                   segment_drift_ppm: dict | None = None) -> Recording:
+                   segment_drift_ppm: dict | None = None, peak_dps: float = 200.0) -> Recording:
     """A clean recording, optionally with injected timing or mounting errors.
 
     offset_s: the IMU sample stamped t was taken at true time t - offset_s (sign convention of
@@ -53,6 +53,7 @@ def make_recording(duration_s: float = 30.0, imu_rate_hz: float = 100.0, referen
     linear_acc_mps2: peak of a linear acceleration shared by all segments (world frame); 0 = gravity only.
     segment_drift_ppm: extra drift of single IMUs, {segment: ppm}, about the middle of the recording (the IMUs run
         at slightly different rates; at mid-recording the extra offset is zero).
+    peak_dps: largest angular rate of each segment's motion (deg/s); small values give slow motion.
     """
     rng = np.random.default_rng(seed)
     fine_dt = 1 / 2000.0
@@ -63,7 +64,7 @@ def make_recording(duration_s: float = 30.0, imu_rate_hz: float = 100.0, referen
         linear *= linear_acc_mps2 / np.abs(linear).max()
     segments = {}
     for name in segment_names:
-        w_fine = smooth_rate(t_fine, rng)
+        w_fine = smooth_rate(t_fine, rng, peak_dps=peak_dps)
         quats = _integrate(Rotation.random(random_state=rng.integers(1 << 31)), w_fine, fine_dt)
         k_ref = np.round((np.arange(int(duration_s * reference_rate_hz)) / reference_rate_hz + 1.0) / fine_dt).astype(int)
         reference = ReferenceStream(Rotation.from_quat(quats[k_ref]), reference_rate_hz, convention='segment_to_world')

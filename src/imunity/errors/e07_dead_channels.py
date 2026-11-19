@@ -183,7 +183,7 @@ from functools import partial  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from ._report import CorrectedLoader, ErrorSpec, count_trials, make_handler  # noqa: E402
-from ._rows import by_participant, dumps, from_runs, loads, parallel_map, reader_of, runs, truthy  # noqa: E402
+from ._rows import by_participant, dumps, from_runs, loads, parallel_map, reader_of, runs, same_imu, truthy  # noqa: E402
 from .e05_clipping import (RAIL_LIMIT, SENSORS, cut_off_samples, minimum_limits, plateaus_of,  # noqa: E402
                            with_recurrence)
 
@@ -252,7 +252,7 @@ def prevalence(rows: pd.DataFrame) -> dict:
 
 def _mask(rec: Recording, trial, *, stored) -> Recording:
     """Dead, stuck and railed samples marked invalid: from the stored runs ({trial: {segment: runs}}), or, where
-    `stored` is None, found again in this trial alone (another reader than the check's)."""
+    `stored` is None, found again in this trial alone (a reader with other IMU streams than the check's)."""
     if stored is not None and str(trial) not in stored:
         return rec
     new, marked = rec.copy(), {}
@@ -276,7 +276,7 @@ def correct(loader, rows: pd.DataFrame):
     reader = reader_of(loader)
     if reader in NO_DEAD_STAGE:
         return loader
-    if len(rows) and 'reader' in rows and rows.reader.iloc[0] != reader:
+    if len(rows) and 'reader' in rows and not same_imu(rows.reader.iloc[0], reader):
         return CorrectedLoader(loader, partial(_mask, stored=None), 'dead channels')
     stored = {}
     for r in rows[rows.detected.map(truthy) | (pd.to_numeric(rows.get('stuck_samples', 0)) > 0)].itertuples():

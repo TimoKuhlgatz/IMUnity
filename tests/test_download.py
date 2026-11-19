@@ -81,6 +81,17 @@ def test_download_marks_complete_and_reports_manual_steps(tmp_path, monkeypatch)
     assert dl.download('reemc', tmp_path)['reemc'].startswith('skipped') and len(calls) == 1
 
 
-def test_every_paper_dataset_has_a_source():
+def test_every_dataset_has_a_source():
+    from imunity.datasets import ALL_DATASETS, EXTRA_DATASETS, PAPER_DATASETS
+    assert set(dl.DATASETS) == set(ALL_DATASETS) == set(PAPER_DATASETS) | set(EXTRA_DATASETS)
+    assert len(PAPER_DATASETS) == 15 and not set(PAPER_DATASETS) & set(EXTRA_DATASETS)
+
+
+def test_download_paper_takes_the_paper_datasets_only(tmp_path, monkeypatch):
     from imunity.datasets import PAPER_DATASETS
-    assert set(dl.DATASETS) == set(PAPER_DATASETS)
+    called = []
+    for name, source in list(dl.DATASETS.items()):
+        monkeypatch.setitem(dl.DATASETS, name, dl.Source(source.host, source.doi, source.licence, source.files,
+                                                         lambda dest, o, n=name: called.append(n)))
+    status = dl.download('paper', tmp_path)
+    assert sorted(status) == sorted(PAPER_DATASETS) == sorted(called)

@@ -99,7 +99,7 @@ def source_loader(dataset: str, data: str, number: int, cache_dir: str | Path | 
     if data == 'deposited':
         from ..datasets import load_dataset
         # Trento as published pairs the k-th IMU trial with the k-th optical file; Geneva's published files.
-        return load_dataset('bonfiglio_deposited' if dataset == 'bonfiglio' else dataset)
+        return load_dataset(f'{dataset}_deposited' if dataset in ('bonfiglio', 'bonfiglio_final') else dataset)
     if data == 'in_order':
         from ..correction import corrected_before
         return corrected_before(dataset, number, cache_dir=cache_dir)

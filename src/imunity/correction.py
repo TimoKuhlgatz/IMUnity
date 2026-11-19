@@ -22,8 +22,8 @@ is the numbering except that gaps filled without a flag (error 4) are masked bef
 (error 3) are looked for: the jump check runs on data corrected for errors 1, 2 and 4, the gap check on data
 corrected for errors 1 and 2 (SEQUENCE).
 
-Readers: Trento upper limb ('bonfiglio') is read with the deposit's own trial pairing until its pairing is
-corrected (error 8), with the repaired pairing afterwards. Geneva ('grouvel') is read from the streams rebuilt from
+Readers: Trento upper limb ('bonfiglio', and 'bonfiglio_final' read from the authors' processed products) is read
+with the deposit's own trial pairing until its pairing is corrected (error 8), with the repaired pairing afterwards. Geneva ('grouvel') is read from the streams rebuilt from
 its raw session logs (error 10, mis-assembled streams) already from the pairing check on, since its pairing cannot be
 judged on the mis-assembled files.
 """
@@ -76,8 +76,8 @@ def parts(number: int) -> dict:
 
 def base_reader(dataset: str, number: int) -> str:
     """The reader the check of error `number` starts from (module description, "Readers")."""
-    if dataset == 'bonfiglio' and number <= 8:
-        return 'bonfiglio_deposited'
+    if dataset in ('bonfiglio', 'bonfiglio_final') and number <= 8:
+        return f'{dataset}_deposited'
     if dataset == 'grouvel' and number >= 8:
         return 'grouvel_raw'
     return dataset

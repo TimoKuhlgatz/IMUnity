@@ -22,11 +22,14 @@ later removal of a constant rotation. Clusters with three markers are not checka
 which define no orientation and give no repair. One occurrence is one continuous run of frames with the same marker
 to blame.
 
-How we handle it: counted, and the frames are left as deposited (report only); only jumps of the reference are
-masked (error 3, reference jumps or flips). The rebuild below (orientation fitted to at least three other markers,
-else the frame marked invalid) is not applied in the order of correction: in skin clusters most flagged runs are
-smooth deformations, the blamed marker stays within 1 mm of its own path, and the rebuild moved Camargo's flagged
-frames from 0.6° to 15° off their clean neighbours (medians), Darmstadt's from 1.2° to 4.0°.
+How we handle it: in rigidly attached clusters (markers on the IMU housing, bone pins, rigid bodies; RIGID_CLUSTERS,
+the readers by their reference type) a misplaced marker can only be a reconstruction error, so every frame of a
+transient run is marked invalid (mask_misplaced_markers); runs reaching the trial's start or end stay reported. In skin
+clusters the runs are only counted and the frames are left as deposited: there most flagged runs are smooth
+deformations of the skin, the blamed marker stays within 1 mm of its own path. The rebuild below (orientation fitted
+to at least three other markers, else the frame marked invalid) is not applied in the order of correction: it moved
+Camargo's flagged frames from 0.6° to 15° off their clean neighbours (medians), Darmstadt's from 1.2° to 4.0°.
+Clusters of three markers are not checkable and pass unchanged.
 """
 from __future__ import annotations
 
@@ -207,12 +210,41 @@ def remove_misplaced_markers(recording: Recording, result: CheckResult, local: d
     return new
 
 
+def mask_misplaced_markers(recording: Recording, result: CheckResult) -> Recording:
+    """Copy in which every frame of a transient run with a misplaced marker is marked invalid, without rebuilding it
+    (for rigidly attached clusters, module description). Runs reaching the trial's start or end stay reported."""
+    new, masked = recording.copy(), {}
+    for name, p in result.per_segment.items():
+        if not p.get('detected'):
+            continue
+        ref = new.segments[name].reference
+        bad = np.zeros(len(ref.valid), bool)
+        for r in p['runs']:
+            bad[r['first']:r['first'] + r['frames']] = True
+        masked[name] = int((bad & ref.valid).sum())
+        ref.valid = ref.valid & ~bad
+    new.log_correction(ERROR, f'Marked {sum(masked.values())} reference frames with a misplaced marker invalid '
+                              '(rigid clusters).', frames_masked=masked)
+    return new
+
+
+# Readers whose clusters are rigidly attached (markers on the IMU housing, bone pins, rigid bodies): misplaced-marker
+# runs are masked there; every other reader has skin clusters (or no markers), whose runs are only reported.
+RIGID_CLUSTERS = {'tuk6min', 'opensense', 'fullbody17', 'grouvel', 'grouvel_raw', 'bonfiglio', 'bonfiglio_deposited',
+                  'is2b', 'diodem'}
+# Readers that serve another reader's optical reference unchanged, frame for frame (Geneva with its IMU streams
+# rebuilt from the raw logs): the runs found on the one hold for the other.
+SAME_REFERENCE = {'grouvel_raw': 'grouvel'}
+
+
 # --- handler: one dataset at a time -------------------------------------------------------------------------------
+
+from functools import partial  # noqa: E402
 
 import pandas as pd  # noqa: E402
 
-from ._report import ErrorSpec, count_trials, make_handler  # noqa: E402
-from ._rows import dumps, parallel_map, reader_of, truthy  # noqa: E402
+from ._report import CorrectedLoader, ErrorSpec, count_trials, make_handler  # noqa: E402
+from ._rows import dumps, loads, parallel_map, reader_of, truthy  # noqa: E402
 
 
 def _check_trial(loader, trial) -> list[dict]:
@@ -256,11 +288,37 @@ def prevalence(rows: pd.DataFrame) -> dict:
     return count_trials(rows, 'runs', int(pd.to_numeric(rows.estimate[hit]).sum()) if hit.any() else 0)
 
 
+def _mask(rec: Recording, trial, *, runs: dict | None) -> Recording:
+    """mask_misplaced_markers with the runs of `runs` ({trial: {segment: [run]}}), or, where no runs were stored for
+    this reader (a re-paired trial holds another optical recording), with the check run on the trial itself."""
+    if not any(seg.reference.markers for seg in rec.segments.values()):
+        return rec
+    if runs is None:
+        result = check_for_misplaced_markers(rec)
+    else:
+        found = runs.get(str(trial), {})
+        result = CheckResult(ERROR, bool(found), '', {seg: dict(detected=True, runs=r) for seg, r in found.items()
+                                                      if seg in rec.segments})
+    return mask_misplaced_markers(rec, result) if result.detected else rec
+
+
 def correct(loader, rows: pd.DataFrame):
-    """Report only: the frames are left as deposited (module description)."""
-    return loader
+    """Rigid clusters (RIGID_CLUSTERS): every frame of a transient run marked invalid; skin clusters: left as
+    deposited (module description)."""
+    reader = reader_of(loader)
+    if reader not in RIGID_CLUSTERS:
+        return loader
+    checked_on = set(rows['reader'].dropna().astype(str)) if 'reader' in rows and len(rows) else set()
+    runs = None
+    if checked_on and checked_on <= {reader, SAME_REFERENCE.get(reader, reader)}:
+        runs = {}
+        for r in rows[rows.detected.map(truthy)].itertuples():
+            stored = [dict(first=int(w['first']), frames=int(w['frames'])) for w in loads(r.runs, [])]
+            if stored:
+                runs.setdefault(str(r.trial), {})[r.segment] = stored
+    return CorrectedLoader(loader, partial(_mask, runs=runs), 'marker in the wrong place')
 
 
-SPEC = ErrorSpec(2, 'misplaced_markers', 'report', 'a cluster marker in the wrong place')
+SPEC = ErrorSpec(2, 'misplaced_markers', 'mask', 'a cluster marker in the wrong place')
 PARTS = {2: dict(spec=SPEC, check_dataset=check_dataset, prevalence=prevalence, correct=correct)}
 handle_misplaced_markers = make_handler(PARTS[2])

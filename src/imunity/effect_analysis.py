@@ -26,8 +26,8 @@ Procedure (the same for every condition and method; estimators in effect.py and 
     error       per joint, the mean angle between estimated and reference relative orientation over the scored
                 samples; per trial, the mean over its joints.
 
-Conditions: by default 'deposited' (the files as published; Trento upper limb read with its repaired trial
-pairing, as in the paper's effect numbers) and 'corrected' (every handled error corrected in the
+Conditions: by default 'deposited' (the data as a user downloads them; for Trento upper limb the authors' own
+processed products with their trial pairing, reader 'bonfiglio_final_deposited', DEPOSITED_READER) and 'corrected' (every handled error corrected in the
 agreed order, imunity.correction.correct_in_order). Any {name: loader factory(dataset)} can be passed instead.
 """
 from __future__ import annotations
@@ -49,9 +49,14 @@ STEP_DECADES = 2
 MIN_GAIN_DEG = 0.01
 
 
+# The reader of the deposited condition where it is not the dataset's own reader: Trento is read from the authors'
+# processed products as published, not from the raw-file reader, which already carries the repaired pairing.
+DEPOSITED_READER = {'bonfiglio': 'bonfiglio_final_deposited'}
+
+
 def _deposited(dataset):
     from .datasets import load_dataset
-    return load_dataset(dataset)
+    return load_dataset(DEPOSITED_READER.get(dataset, dataset))
 
 
 def _widened(values, best, limits):
